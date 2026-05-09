@@ -3,7 +3,7 @@ import type { BottomNavItem } from "../components/app/BottomNav.astro";
 export const residentNav: BottomNavItem[] = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard", href: "/residente/inicio" },
   { id: "nuevo-pase", label: "Nuevo Pase", icon: "add_card", href: "/residente/nuevo-pase" },
-  { id: "mi-qr", label: "Mi QR", icon: "qr_code_2", href: "/residente/pase-demo" }
+  { id: "activos", label: "Activos", icon: "qr_code_2", href: "/residente/inicio#pases-activos" }
 ];
 
 export const guardNav: BottomNavItem[] = [

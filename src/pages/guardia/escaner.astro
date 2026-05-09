@@ -18,10 +18,6 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
       <button data-access-type="entrada" class="access-toggle h-11 rounded-lg bg-[#213138] text-base font-semibold text-white">Entrada</button>
       <button data-access-type="salida" class="access-toggle h-11 rounded-lg bg-[#eeeeee] text-base font-semibold text-[#213138]">Salida</button>
     </div>
-    <div class="mt-2 grid grid-cols-2 gap-2">
-      <button data-qr-state="valido" class="qr-toggle h-11 rounded-lg bg-[#006d36] text-base font-semibold text-white">QR Valido</button>
-      <button data-qr-state="invalido" class="qr-toggle h-11 rounded-lg bg-[#eeeeee] text-base font-semibold text-[#93000a]">QR Invalido</button>
-    </div>
     <div class="mt-2 flex gap-2">
       <input id="manual-token" placeholder="Pegar token QR" class="h-11 flex-1 rounded-lg bg-[#f3f3f4] px-3 text-sm outline-none" />
       <button id="validate-token" class="h-11 rounded-lg bg-[#213138] px-4 text-sm font-semibold text-white">Validar</button>
@@ -61,7 +57,6 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
 
 <script is:inline>
   const accessButtons = Array.from(document.querySelectorAll(".access-toggle"));
-  const qrButtons = Array.from(document.querySelectorAll(".qr-toggle"));
   const actionLabel = document.getElementById("action-label");
   const statusTitle = document.getElementById("status-title");
   const statusChip = document.getElementById("status-chip");
@@ -76,18 +71,32 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
   const lotNode = document.querySelector("#access-card p.mt-1.text-6xl");
 
   let accessType = "entrada";
-  let qrState = "valido";
+  let qrState = "invalido";
   let currentToken = "";
   let scanIntervalId = 0;
 
-  const normalizeState = (value) => (value === "invalid" ? "invalido" : "valido");
   const normalizeType = (value) => (value === "salida" ? "salida" : "entrada");
+  const extractToken = (rawValue) => {
+    if (!rawValue) return "";
+    const trimmed = String(rawValue).trim();
+    if (!trimmed) return "";
+    if (!trimmed.includes("http://") && !trimmed.includes("https://")) return trimmed;
+    try {
+      const parsed = new URL(trimmed);
+      const queryCode = parsed.searchParams.get("code");
+      if (queryCode) return queryCode;
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      if (parts.length >= 2 && parts[0] === "pase") return decodeURIComponent(parts[1]);
+      return "";
+    } catch {
+      return "";
+    }
+  };
 
   const readStateFromUrl = () => {
     const params = new URLSearchParams(window.location.search);
-    qrState = normalizeState(params.get("state"));
     accessType = normalizeType(params.get("type"));
-    const urlToken = params.get("code");
+    const urlToken = extractToken(params.get("code") ?? "");
     if (urlToken) {
       currentToken = urlToken;
       if (manualTokenInput instanceof HTMLInputElement) manualTokenInput.value = urlToken;
@@ -96,7 +105,6 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
 
   const syncUrlFromState = () => {
     const params = new URLSearchParams(window.location.search);
-    params.set("state", qrState === "valido" ? "valid" : "invalid");
     params.set("type", accessType);
     if (currentToken) params.set("code", currentToken);
     const next = `${window.location.pathname}?${params.toString()}`;
@@ -122,10 +130,11 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
   };
 
   const processToken = async (token) => {
-    if (!token) return;
-    currentToken = token;
+    const normalizedToken = extractToken(token);
+    if (!normalizedToken) return;
+    currentToken = normalizedToken;
     try {
-      const result = await validateTokenOnServer(token);
+      const result = await validateTokenOnServer(normalizedToken);
       qrState = result.status === "authorized" ? "valido" : "invalido";
       if (visitorNameNode && result.visitanteNombre) visitorNameNode.textContent = result.visitanteNombre;
       if (lotNode && result.lote) lotNode.textContent = `Lote ${result.lote}`;
@@ -211,13 +220,6 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
       button.className = `access-toggle h-11 rounded-lg text-base font-semibold ${active ? "bg-[#213138] text-white" : "bg-[#eeeeee] text-[#213138]"}`;
     });
 
-    qrButtons.forEach((button) => {
-      const active = button.getAttribute("data-qr-state") === qrState;
-      button.className = `qr-toggle h-11 rounded-lg text-base font-semibold ${
-        active ? (qrState === "valido" ? "bg-[#006d36] text-white" : "bg-[#93000a] text-white") : "bg-[#eeeeee] text-[#5f6368]"
-      }`;
-    });
-
     if (!actionLabel || !statusTitle || !statusChip || !accessAction) return;
     actionLabel.textContent = accessType === "entrada" ? "Registrar entrada" : "Registrar salida";
     if (qrState === "valido") {
@@ -237,13 +239,6 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
   accessButtons.forEach((button) => {
     button.addEventListener("click", () => {
       accessType = button.getAttribute("data-access-type") ?? "entrada";
-      render();
-    });
-  });
-
-  qrButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      qrState = button.getAttribute("data-qr-state") ?? "valido";
       render();
     });
   });

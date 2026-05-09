@@ -119,7 +119,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
     currentCode = payload.pass?.tokenQr ?? createCode();
     const state = testState instanceof HTMLSelectElement ? testState.value : "valid";
     const type = testType instanceof HTMLSelectElement ? testType.value : "entrada";
-    currentShareUrl = `${window.location.origin}/guardia/escaner?state=${encodeURIComponent(state)}&type=${encodeURIComponent(type)}&code=${encodeURIComponent(currentCode)}`;
+    currentShareUrl = `${window.location.origin}/pase/${encodeURIComponent(currentCode)}?type=${encodeURIComponent(type)}`;
     if (generatedLabel) {
       generatedLabel.textContent = `Codigo temporal generado: ${currentCode}`;
     }
@@ -138,8 +138,8 @@ import AppLayout from "../../layouts/AppLayout.astro";
     const code = currentCode || createCode();
     const state = testState instanceof HTMLSelectElement ? testState.value : "valid";
     const type = testType instanceof HTMLSelectElement ? testType.value : "entrada";
-    const url = currentShareUrl || `${window.location.origin}/guardia/escaner?state=${encodeURIComponent(state)}&type=${encodeURIComponent(type)}&code=${encodeURIComponent(code)}`;
-    const text = `Pase Nauka Nayarit%0AVisitante: ${encodeURIComponent(name)}%0AMotivo: ${encodeURIComponent(reason)}%0ACodigo: ${encodeURIComponent(code)}%0AValidar en caseta: ${encodeURIComponent(url)}`;
+    const url = currentShareUrl || `${window.location.origin}/pase/${encodeURIComponent(code)}?type=${encodeURIComponent(type)}`;
+    const text = `Pase Nauka Nayarit%0AVisitante: ${encodeURIComponent(name)}%0AMotivo: ${encodeURIComponent(reason)}%0ACodigo: ${encodeURIComponent(code)}%0AMostrar en caseta: ${encodeURIComponent(url)}`;
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   });
 </script>

@@ -108,7 +108,7 @@ export async function getUserFromAccessToken(accessToken?: string): Promise<User
 
 export async function getProfileForUser(userId: string, accessToken?: string): Promise<UserProfile | null> {
   try {
-    const client = getSupabaseServerClient(accessToken);
+    const client = getSupabaseServiceClient();
     const { data, error } = await client
       .from("profiles")
       .select("id, role, full_name, lot_number, complejo_id")

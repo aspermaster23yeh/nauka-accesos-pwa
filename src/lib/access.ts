@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from "./supabase";
+import { getSupabaseServiceClient } from "./supabase";
 
 export type AccessStatus = "authorized" | "expired" | "not_found";
 
@@ -21,7 +21,7 @@ export interface AccessValidationResult {
 }
 
 export async function validateAccessQr(token: string, complejoId: string, guardiaId?: string): Promise<AccessValidationResult> {
-  const supabase = getSupabaseServerClient();
+  const supabase = getSupabaseServiceClient();
 
   const { data, error } = await supabase
     .from("pases_acceso")
@@ -95,7 +95,7 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
 }
 
 export async function getBitacoraByComplejo(complejoId: string, query?: string, accessToken?: string) {
-  const supabase = getSupabaseServerClient(accessToken);
+  const supabase = getSupabaseServiceClient();
   const normalizedQuery = query?.trim();
   let statement = supabase
     .from("bitacora_accesos")
@@ -127,7 +127,7 @@ export async function createVisitorPass(input: {
   creadoPor: string;
   accessToken: string;
 }) {
-  const supabase = getSupabaseServerClient(input.accessToken);
+  const supabase = getSupabaseServiceClient();
   const tokenQr = crypto.randomUUID();
   const expiry = new Date(input.venceEn);
   if (Number.isNaN(expiry.getTime())) {
@@ -163,7 +163,7 @@ export async function createVisitorPass(input: {
 }
 
 export async function getActivePassesForResident(ctx: AuthContext) {
-  const supabase = getSupabaseServerClient(ctx.accessToken);
+  const supabase = getSupabaseServiceClient();
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from("pases_acceso")
@@ -184,7 +184,7 @@ export async function registerAccessMovement(input: {
   tokenQr: string;
   tipoEvento: "entrada" | "salida";
 }) {
-  const supabase = getSupabaseServerClient(input.accessToken);
+  const supabase = getSupabaseServiceClient();
   const { data: pass, error } = await supabase
     .from("pases_acceso")
     .select("id, visitante_nombre, lote_number, estado")
@@ -213,7 +213,7 @@ export async function registerAccessMovement(input: {
 }
 
 export async function getAdminMetrics(ctx: AuthContext) {
-  const supabase = getSupabaseServerClient(ctx.accessToken);
+  const supabase = getSupabaseServiceClient();
   const startDay = new Date();
   startDay.setHours(0, 0, 0, 0);
 
@@ -244,7 +244,7 @@ export async function getAdminMetrics(ctx: AuthContext) {
 }
 
 async function registerBitacoraEvent(input: {
-  supabase: ReturnType<typeof getSupabaseServerClient>;
+  supabase: ReturnType<typeof getSupabaseServiceClient>;
   complejoId: string;
   guardiaId?: string;
   token: string;
