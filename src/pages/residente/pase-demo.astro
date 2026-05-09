@@ -23,10 +23,16 @@ export const prerender = true;
       #guard-link {
         color: #334155 !important;
       }
+      #pass-watermark {
+        opacity: 0.22 !important;
+      }
     }
   </style>
 
-  <section id="printable-pass" class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
+  <section id="printable-pass" class="relative overflow-hidden rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
+    <div id="pass-watermark" class="pointer-events-none absolute right-[-34px] top-10 rotate-[28deg] rounded-lg border-2 px-7 py-2 text-lg font-extrabold uppercase tracking-[0.08em]">
+      --
+    </div>
     <div class="mb-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="grid h-12 w-12 place-items-center rounded-full bg-[#213138] text-white">
@@ -82,6 +88,7 @@ export const prerender = true;
   const guardLink = document.getElementById("guard-link");
   const passFolio = document.getElementById("pass-folio");
   const passExpiry = document.getElementById("pass-expiry");
+  const passWatermark = document.getElementById("pass-watermark");
   const shareImageButton = document.getElementById("share-image");
   const downloadPdfButton = document.getElementById("download-pdf");
   const expiryDate = new Date(Date.now() + 4 * 60 * 60 * 1000);
@@ -92,6 +99,17 @@ export const prerender = true;
   if (guardLink) guardLink.textContent = guardUrl;
   if (passFolio) passFolio.textContent = `Folio: ${folio}`;
   if (passExpiry) passExpiry.textContent = expiryDate.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+  if (passWatermark) {
+    if (state === "valid") {
+      passWatermark.textContent = "VALIDO";
+      passWatermark.className =
+        "pointer-events-none absolute right-[-34px] top-10 rotate-[28deg] rounded-lg border-2 border-[#006d36] bg-[#83fba5]/30 px-7 py-2 text-lg font-extrabold uppercase tracking-[0.08em] text-[#006d36]";
+    } else {
+      passWatermark.textContent = "INVALIDO";
+      passWatermark.className =
+        "pointer-events-none absolute right-[-38px] top-10 rotate-[28deg] rounded-lg border-2 border-[#93000a] bg-[#ffdad6] px-7 py-2 text-lg font-extrabold uppercase tracking-[0.08em] text-[#93000a]";
+    }
+  }
 
   const fetchQrFile = async () => {
     const response = await fetch(qrUrl);

@@ -12,6 +12,10 @@ export const prerender = true;
   navItems={guardNav}
 >
   <section class="mb-4 rounded-xl bg-white p-2 shadow-[0_6px_18px_rgba(26,28,28,0.05)]">
+    <div class="mb-2 rounded-lg bg-[#f3f3f4] p-2">
+      <button id="camera-permission" class="h-10 w-full rounded-lg bg-[#213138] text-sm font-semibold text-white">Activar camara</button>
+      <p id="camera-status" class="mt-2 text-center text-xs font-semibold text-[#5f6368]">Camara no iniciada</p>
+    </div>
     <div class="grid grid-cols-2 gap-2">
       <button data-access-type="entrada" class="access-toggle h-11 rounded-lg bg-[#213138] text-base font-semibold text-white">Entrada</button>
       <button data-access-type="salida" class="access-toggle h-11 rounded-lg bg-[#eeeeee] text-base font-semibold text-[#213138]">Salida</button>
@@ -23,6 +27,7 @@ export const prerender = true;
   </section>
 
   <section class="relative -mx-4 -mt-6 mb-6 h-[45vh] overflow-hidden bg-[#2f3131]">
+    <video id="camera-video" class="absolute inset-0 hidden h-full w-full object-cover" autoplay playsinline muted></video>
     <img src={loginBackground.src} alt="camera bg" class="h-full w-full object-cover blur-sm brightness-75" />
     <div class="absolute inset-0 grid place-items-center">
       <div class="relative h-64 w-64">
@@ -59,6 +64,9 @@ export const prerender = true;
   const statusTitle = document.getElementById("status-title");
   const statusChip = document.getElementById("status-chip");
   const accessAction = document.getElementById("access-action");
+  const cameraPermission = document.getElementById("camera-permission");
+  const cameraStatus = document.getElementById("camera-status");
+  const cameraVideo = document.getElementById("camera-video");
 
   let accessType = "entrada";
   let qrState = "valido";
@@ -78,6 +86,37 @@ export const prerender = true;
     params.set("type", accessType);
     const next = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState(null, "", next);
+  };
+
+  const setCameraStatus = (message, isError = false) => {
+    if (!cameraStatus) return;
+    cameraStatus.textContent = message;
+    cameraStatus.className = `mt-2 text-center text-xs font-semibold ${isError ? "text-[#93000a]" : "text-[#5f6368]"}`;
+  };
+
+  const requestCamera = async () => {
+    if (!(cameraVideo instanceof HTMLVideoElement)) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraStatus("Tu navegador no soporta camara.", true);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" }
+        },
+        audio: false
+      });
+      cameraVideo.srcObject = stream;
+      cameraVideo.classList.remove("hidden");
+      setCameraStatus("Camara activa (modo escaner).");
+      if (cameraPermission) {
+        cameraPermission.textContent = "Camara activa";
+        cameraPermission.className = "h-10 w-full rounded-lg bg-[#006d36] text-sm font-semibold text-white";
+      }
+    } catch {
+      setCameraStatus("Permiso denegado o camara no disponible.", true);
+    }
   };
 
   const render = () => {
@@ -132,6 +171,10 @@ export const prerender = true;
       qrState = button.getAttribute("data-qr-state") ?? "valido";
       render();
     });
+  });
+
+  cameraPermission?.addEventListener("click", () => {
+    requestCamera();
   });
 
   readStateFromUrl();
