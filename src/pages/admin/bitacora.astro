@@ -2,11 +2,10 @@
 import AppLayout from "../../layouts/AppLayout.astro";
 import { adminNav } from "../../lib/nav";
 import { getBitacoraByComplejo } from "../../lib/access";
----
-
 const q = Astro.url.searchParams.get("q") ?? "";
 const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
 const registros = await getBitacoraByComplejo(complejoId, q, Astro.locals.accessToken ?? undefined);
+---
 
 <AppLayout
   title="Bitacora - Nauka Nayarit"

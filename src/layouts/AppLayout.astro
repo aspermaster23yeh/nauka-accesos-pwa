@@ -23,6 +23,27 @@ const currentPath = Astro.url.pathname;
 const inferredActiveNav =
   activeNav ??
   navItems.find((item) => currentPath === item.href || currentPath.startsWith(`${item.href}/`))?.id;
+const profile = Astro.locals.profile;
+const user = Astro.locals.user;
+const isAuthenticated = Boolean(profile && user);
+const roleLabel = profile?.role === "admin" ? "Administrador" : profile?.role === "guardia" ? "Guardia" : "Residente";
+const userName = profile?.full_name ?? user?.email ?? "Usuario";
+const roleHome = profile?.role === "admin" ? "/admin/dashboard" : profile?.role === "guardia" ? "/guardia/escaner" : "/residente/inicio";
+const roleLinks =
+  profile?.role === "admin"
+    ? [
+        { href: "/admin/dashboard", label: "Dashboard" },
+        { href: "/admin/bitacora", label: "Bitacora" }
+      ]
+    : profile?.role === "guardia"
+      ? [
+          { href: "/guardia/escaner", label: "Escaner QR" },
+          { href: "/guardia/acceso-denegado", label: "Accesos denegados" }
+        ]
+      : [
+          { href: "/residente/inicio", label: "Inicio" },
+          { href: "/residente/nuevo-pase", label: "Nuevo pase" }
+        ];
 ---
 
 <!doctype html>
@@ -43,11 +64,90 @@ const inferredActiveNav =
   <body class={`min-h-screen ${bodyClass}`}>
     <div class="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col bg-[#f9f9f9]">
       {topBar && <TopAppBar {...topBar} />}
+      {
+        isAuthenticated && (
+          <>
+            <button
+              id="sidebar-open"
+              class="fixed right-6 top-4 z-[60] grid h-10 w-10 place-items-center rounded-full bg-white text-[#213138] shadow-[0_8px_20px_rgba(26,28,28,0.2)]"
+              aria-label="Abrir menu"
+            >
+              <span class="material-symbols-outlined">menu</span>
+            </button>
+            <div id="sidebar-overlay" class="pointer-events-none fixed inset-0 z-[70] bg-black/35 opacity-0 transition-opacity"></div>
+            <aside
+              id="sidebar-panel"
+              class="fixed right-0 top-0 z-[80] flex h-full w-[84%] max-w-[330px] translate-x-full flex-col bg-white p-5 shadow-[-12px_0_24px_rgba(26,28,28,0.2)] transition-transform"
+            >
+              <div class="mb-5 flex items-start justify-between">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">{roleLabel}</p>
+                  <p class="mt-1 text-lg font-semibold text-[#213138]">{userName}</p>
+                </div>
+                <button id="sidebar-close" class="grid h-9 w-9 place-items-center rounded-full bg-[#f2f2f2] text-[#213138]" aria-label="Cerrar menu">
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              <nav class="space-y-2">
+                <a href={roleHome} class="flex items-center gap-2 rounded-xl bg-[#213138] px-4 py-3 text-sm font-semibold text-white">
+                  <span class="material-symbols-outlined text-base">home</span>
+                  <span>Ir a mi inicio</span>
+                </a>
+                {roleLinks.map((item) => (
+                  <a href={item.href} class="block rounded-xl bg-[#f4f4f4] px-4 py-3 text-sm font-semibold text-[#213138]">
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+
+              <div class="mt-auto border-t border-[#ececec] pt-4">
+                <form method="post" action="/api/auth/logout">
+                  <button type="submit" class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#ba1a1a] text-sm font-semibold text-white">
+                    <span class="material-symbols-outlined text-base">logout</span>
+                    <span>Cerrar sesion</span>
+                  </button>
+                </form>
+              </div>
+            </aside>
+          </>
+        )
+      }
       <main class={`flex-1 px-4 ${navItems.length > 0 ? "pb-24" : "pb-6"} ${pageTitle ? "pt-6" : "pt-4"}`}>
         {pageTitle && <h1 class="mb-6 text-[2.6rem] font-extrabold leading-tight tracking-[-0.02em] text-[#213138]">{pageTitle}</h1>}
         <slot />
       </main>
       {navItems.length > 0 && <BottomNav items={navItems} activeId={inferredActiveNav} />}
     </div>
+    {
+      isAuthenticated && (
+        <script is:inline>
+          {`(() => {
+            const openButton = document.getElementById("sidebar-open");
+            const closeButton = document.getElementById("sidebar-close");
+            const panel = document.getElementById("sidebar-panel");
+            const overlay = document.getElementById("sidebar-overlay");
+            if (!openButton || !closeButton || !panel || !overlay) return;
+
+            const openSidebar = () => {
+              panel.classList.remove("translate-x-full");
+              overlay.classList.remove("opacity-0", "pointer-events-none");
+            };
+
+            const closeSidebar = () => {
+              panel.classList.add("translate-x-full");
+              overlay.classList.add("opacity-0", "pointer-events-none");
+            };
+
+            openButton.addEventListener("click", openSidebar);
+            closeButton.addEventListener("click", closeSidebar);
+            overlay.addEventListener("click", closeSidebar);
+            window.addEventListener("keydown", (event) => {
+              if (event.key === "Escape") closeSidebar();
+            });
+          })();`}
+        </script>
+      )
+    }
   </body>
 </html>
