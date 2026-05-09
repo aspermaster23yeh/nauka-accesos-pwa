@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   if (!fullName || !lotNumber || !email || !password) {
     return new Response(null, {
       status: 303,
-      headers: { Location: "/registro?error=Completa todos los campos." }
+      headers: { Location: "/auth/resultado?status=error&reason=Completa%20todos%20los%20campos" }
     });
   }
 
@@ -33,14 +33,14 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   if (error) {
     return new Response(null, {
       status: 303,
-      headers: { Location: `/registro?error=${encodeURIComponent(error.message)}` }
+      headers: { Location: `/auth/resultado?status=error&reason=${encodeURIComponent(error.message)}` }
     });
   }
 
   if (!data.user) {
     return new Response(null, {
       status: 303,
-      headers: { Location: "/registro?error=No se pudo crear el usuario." }
+      headers: { Location: "/auth/resultado?status=error&reason=No%20se%20pudo%20crear%20el%20usuario" }
     });
   }
 
@@ -57,7 +57,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   if (profileError) {
     return new Response(null, {
       status: 303,
-      headers: { Location: `/registro?error=${encodeURIComponent(profileError.message)}` }
+      headers: { Location: `/auth/resultado?status=error&reason=${encodeURIComponent(profileError.message)}` }
     });
   }
 
@@ -74,9 +74,18 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   if (!data.session) {
     return new Response(null, {
       status: 303,
-      headers: { Location: "/?success=Cuenta creada. Revisa tu correo para confirmar el acceso." }
+      headers: {
+        Location:
+          "/auth/resultado?status=success&title=Cuenta%20creada&message=Revisa%20tu%20correo%20para%20confirmar%20el%20acceso"
+      }
     });
   }
 
-  return new Response(null, { status: 303, headers: { Location: "/residente/inicio" } });
+  return new Response(null, {
+    status: 303,
+    headers: {
+      Location:
+        "/auth/resultado?status=success&title=Registro%20exitoso&message=Tu%20cuenta%20se%20registro%20correctamente&next=/residente/inicio"
+    }
+  });
 };
