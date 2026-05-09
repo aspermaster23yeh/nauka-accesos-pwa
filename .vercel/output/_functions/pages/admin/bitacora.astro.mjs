@@ -1,7 +1,7 @@
 /* empty css                                       */
 import { e as createAstro, f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../chunks/astro/server_s_qG7lfK.mjs';
 import 'piccolore';
-import { $ as $$MainLayout } from '../../chunks/MainLayout_DpKp_i0Q.mjs';
+import { $ as $$MainLayout } from '../../chunks/MainLayout_ZbZW5qyW.mjs';
 import { g as getBitacoraByComplejo } from '../../chunks/access_C5HYczi0.mjs';
 export { renderers } from '../../renderers.mjs';
 
