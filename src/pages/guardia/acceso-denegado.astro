@@ -1,6 +1,7 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
 import loginBackground from "../../../491461670_17919450432084004_8291959886084544470_n.jpg";
+const reason = Astro.url.searchParams.get("reason") ?? "Codigo expirado";
 ---
 
 <AppLayout title="Acceso Denegado - Nauka Nayarit" bodyClass="bg-[#2f3131] text-[#1a1c1c]">
@@ -15,7 +16,7 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
         <span class="material-symbols-outlined text-5xl">warning</span>
       </div>
       <h1 class="text-6xl font-extrabold uppercase tracking-tight text-[#ba1a1a]">Acceso no autorizado</h1>
-      <p class="mt-3 text-lg font-bold uppercase tracking-[0.08em] text-[#5f6368]">Razon: Codigo expirado</p>
+      <p class="mt-3 text-lg font-bold uppercase tracking-[0.08em] text-[#5f6368]">Razon: {reason}</p>
       <div class="mt-6 space-y-3">
         <a href="/guardia/escaner" class="flex h-14 w-full items-center justify-center rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-2xl font-semibold text-white">
           Escanear Nuevo Codigo
