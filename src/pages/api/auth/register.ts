@@ -22,7 +22,6 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     email,
     password,
     options: {
-      emailRedirectTo: `${url.origin}/`,
       data: {
         full_name: fullName,
         lot_number: lotNumber,
