@@ -11,11 +11,18 @@ export interface UserProfile {
   complejo_id: string | null;
 }
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? import.meta.env.SUPABASE_URL;
-const supabaseAnonKey =
-  import.meta.env.PUBLIC_SUPABASE_ANON_KEY ??
-  import.meta.env.SUPABASE_PUBLISHABLE_KEY ??
-  import.meta.env.SUPABASE_KEY;
+function readEnv(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const fromImportMeta = (import.meta.env as Record<string, string | undefined>)[key];
+    if (fromImportMeta) return fromImportMeta;
+
+    if (typeof process !== "undefined") {
+      const fromProcess = process.env[key];
+      if (fromProcess) return fromProcess;
+    }
+  }
+  return undefined;
+}
 
 function assertEnv(name: string, value: string | undefined): string {
   if (!value) {
@@ -24,15 +31,23 @@ function assertEnv(name: string, value: string | undefined): string {
   return value;
 }
 
+function resolveSupabaseConfig(): { url?: string; anonKey?: string } {
+  const url = readEnv("PUBLIC_SUPABASE_URL", "SUPABASE_URL");
+  const anonKey = readEnv("PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_KEY");
+  return { url, anonKey };
+}
+
 function hasSupabaseConfig(): boolean {
-  return Boolean(supabaseUrl && supabaseAnonKey);
+  const { url, anonKey } = resolveSupabaseConfig();
+  return Boolean(url && anonKey);
 }
 
 export function getSupabaseServerClient(accessToken?: string): SupabaseClient<any, PublicSchema, any> {
+  const { url, anonKey } = resolveSupabaseConfig();
   if (!hasSupabaseConfig()) {
     throw new Error("Supabase environment variables are not configured.");
   }
-  return createClient(assertEnv("PUBLIC_SUPABASE_URL", supabaseUrl), assertEnv("PUBLIC_SUPABASE_ANON_KEY", supabaseAnonKey), {
+  return createClient(assertEnv("PUBLIC_SUPABASE_URL", url), assertEnv("PUBLIC_SUPABASE_ANON_KEY", anonKey), {
     auth: {
       persistSession: false,
       autoRefreshToken: false
@@ -48,10 +63,11 @@ export function getSupabaseServerClient(accessToken?: string): SupabaseClient<an
 }
 
 export function getSupabaseBrowserClient(): SupabaseClient<any, PublicSchema, any> {
+  const { url, anonKey } = resolveSupabaseConfig();
   if (!hasSupabaseConfig()) {
     throw new Error("Supabase environment variables are not configured.");
   }
-  return createClient(assertEnv("PUBLIC_SUPABASE_URL", supabaseUrl), assertEnv("PUBLIC_SUPABASE_ANON_KEY", supabaseAnonKey));
+  return createClient(assertEnv("PUBLIC_SUPABASE_URL", url), assertEnv("PUBLIC_SUPABASE_ANON_KEY", anonKey));
 }
 
 export async function getUserFromAccessToken(accessToken?: string): Promise<User | null> {

@@ -3,10 +3,17 @@ import { getSupabaseServerClient } from "../../../lib/supabase";
 
 export const prerender = false;
 
+function sanitizeEmail(raw: FormDataEntryValue | null): string {
+  return String(raw ?? "")
+    .trim()
+    .replace(/^["'\s]+|["'\s]+$/g, "")
+    .toLowerCase();
+}
+
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const formData = await request.formData();
-    const email = String(formData.get("email") ?? "").trim();
+    const email = sanitizeEmail(formData.get("email"));
     const password = String(formData.get("password") ?? "");
 
     if (!email || !password) {
