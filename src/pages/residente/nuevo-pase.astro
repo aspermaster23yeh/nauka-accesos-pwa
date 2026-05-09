@@ -30,6 +30,11 @@ import AppLayout from "../../layouts/AppLayout.astro";
         </select>
       </label>
 
+      <label class="block space-y-2">
+        <span class="text-3xl font-medium text-[#213138]">Notas para caseta</span>
+        <textarea id="visit-notes" rows="3" class="w-full rounded-xl bg-[#f3f3f4] px-4 py-3 text-lg outline-none focus:ring-2 focus:ring-[#213138]/25" placeholder="Ej. Proveedor autorizado por mantenimiento, trae 3 paquetes."></textarea>
+      </label>
+
       <div class="grid grid-cols-2 gap-3">
         <label class="block space-y-2">
           <span class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Estado de prueba</span>
@@ -75,6 +80,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
   const visitReason = document.getElementById("visit-reason");
   const testState = document.getElementById("test-state");
   const testType = document.getElementById("test-type");
+  const visitNotes = document.getElementById("visit-notes");
   const previewPassLink = document.getElementById("preview-pass-link");
   const visitDate = document.getElementById("visit-date");
   const visitTime = document.getElementById("visit-time");
@@ -96,6 +102,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
   generateButton?.addEventListener("click", async () => {
     const name = visitorName instanceof HTMLInputElement ? visitorName.value.trim() : "";
     const reason = visitReason instanceof HTMLSelectElement ? visitReason.value : "Visita";
+    const notes = visitNotes instanceof HTMLTextAreaElement ? visitNotes.value.trim() : "";
     const venceEn = combineDateTime();
     if (!name || !venceEn) {
       alert("Completa nombre, fecha y hora.");
@@ -107,7 +114,8 @@ import AppLayout from "../../layouts/AppLayout.astro";
       body: JSON.stringify({
         visitanteNombre: name,
         motivo: reason,
-        venceEn
+        venceEn,
+        notas: notes
       })
     });
     if (!response.ok) {

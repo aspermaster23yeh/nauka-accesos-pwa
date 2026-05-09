@@ -44,6 +44,10 @@ const registros = await getBitacoraByComplejo(complejoId, q, Astro.locals.access
           <p class={`text-sm ${row.resultado === "rechazado" ? "text-[#93000a]" : "text-[#5f6368]"}`}>
             {(row.tipo_evento ?? "movimiento").toUpperCase()} · {row.lote_number ?? "Sin lote"} {row.razon ? `· ${row.razon}` : ""}
           </p>
+          <p class="text-xs text-[#5f6368]">
+            Residente: {row.residente_nombre ?? "No identificado"} · Motivo: {row.motivo ?? "N/A"}
+          </p>
+          {row.notas && <p class="text-xs text-[#5f6368]">Notas: {row.notas}</p>}
         </div>
       </a>
     ))}

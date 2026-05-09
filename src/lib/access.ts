@@ -13,7 +13,7 @@ export interface AuthContext {
 export interface AccessValidationResult {
   status: AccessStatus;
   visitanteNombre?: string;
-  anfitrionNombre?: string;
+  residenteNombre?: string;
   vencimiento?: string;
   razon?: string;
   paseId?: string;
@@ -22,11 +22,12 @@ export interface AccessValidationResult {
 
 export async function validateAccessQr(token: string, complejoId: string, guardiaId?: string): Promise<AccessValidationResult> {
   const supabase = getSupabaseServiceClient();
+  const normalizedToken = token.trim().toLowerCase();
 
   const { data, error } = await supabase
     .from("pases_acceso")
-    .select("id, visitante_nombre, anfitrion_nombre, estado, vence_en, lote_number")
-    .eq("token_qr", token)
+    .select("id, visitante_nombre, estado, vence_en, lote_number, creado_por")
+    .ilike("token_qr", normalizedToken)
     .eq("complejo_id", complejoId)
     .maybeSingle();
 
@@ -35,7 +36,7 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
       supabase,
       complejoId,
       guardiaId,
-      token,
+      token: normalizedToken,
       visitanteNombre: null,
       tipoEvento: "validacion",
       resultado: "rechazado",
@@ -49,7 +50,9 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
       supabase,
       complejoId,
       guardiaId,
-      token,
+      token: normalizedToken,
+      paseId: data.id,
+      loteNumber: data.lote_number,
       visitanteNombre: data.visitante_nombre,
       tipoEvento: "validacion",
       resultado: "rechazado",
@@ -65,7 +68,9 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
       supabase,
       complejoId,
       guardiaId,
-      token,
+      token: normalizedToken,
+      paseId: data.id,
+      loteNumber: data.lote_number,
       visitanteNombre: data.visitante_nombre,
       tipoEvento: "validacion",
       resultado: "rechazado",
@@ -78,16 +83,20 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
     supabase,
     complejoId,
     guardiaId,
-    token,
+    token: normalizedToken,
+    paseId: data.id,
+    loteNumber: data.lote_number,
     visitanteNombre: data.visitante_nombre,
     tipoEvento: "validacion",
     resultado: "autorizado"
   });
 
+  const { data: residentProfile } = await supabase.from("profiles").select("full_name").eq("id", data.creado_por).maybeSingle();
+
   return {
     status: "authorized",
     visitanteNombre: data.visitante_nombre,
-    anfitrionNombre: data.anfitrion_nombre,
+    residenteNombre: residentProfile?.full_name ?? undefined,
     vencimiento: data.vence_en,
     paseId: data.id,
     lote: data.lote_number
@@ -99,7 +108,7 @@ export async function getBitacoraByComplejo(complejoId: string, query?: string, 
   const normalizedQuery = query?.trim();
   let statement = supabase
     .from("bitacora_accesos")
-    .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number")
+    .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, token_qr, guardia_id")
     .eq("complejo_id", complejoId)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -114,7 +123,30 @@ export async function getBitacoraByComplejo(complejoId: string, query?: string, 
   if (error) {
     throw new Error(error.message);
   }
-  return data ?? [];
+  const rows = data ?? [];
+  const passIds = rows.map((row) => row.pase_id).filter(Boolean);
+  const { data: passes } =
+    passIds.length > 0
+      ? await supabase.from("pases_acceso").select("id, creado_por, motivo, notas, created_at").in("id", passIds)
+      : { data: [] };
+  const creatorIds = (passes ?? []).map((p) => p.creado_por).filter(Boolean);
+  const { data: creators } =
+    creatorIds.length > 0 ? await supabase.from("profiles").select("id, full_name, lot_number").in("id", creatorIds) : { data: [] };
+
+  const passById = new Map((passes ?? []).map((p) => [p.id, p]));
+  const creatorById = new Map((creators ?? []).map((c) => [c.id, c]));
+
+  return rows.map((row) => {
+    const pass = row.pase_id ? passById.get(row.pase_id) : null;
+    const creator = pass?.creado_por ? creatorById.get(pass.creado_por) : null;
+    return {
+      ...row,
+      motivo: pass?.motivo ?? null,
+      notas: pass?.notas ?? null,
+      residente_nombre: creator?.full_name ?? null,
+      residente_lote: creator?.lot_number ?? null
+    };
+  });
 }
 
 export async function createVisitorPass(input: {
@@ -123,6 +155,7 @@ export async function createVisitorPass(input: {
   motivo: string;
   venceEn: string;
   telefonoDestino?: string;
+  notas?: string;
   lotNumber?: string | null;
   creadoPor: string;
   accessToken: string;
@@ -144,6 +177,7 @@ export async function createVisitorPass(input: {
       vence_en: expiry.toISOString(),
       estado: "vigente",
       telefono_destino: input.telefonoDestino ?? null,
+      notas: input.notas ?? null,
       lote_number: input.lotNumber ?? null,
       creado_por: input.creadoPor,
       tipo_acceso: "entrada"
@@ -248,6 +282,8 @@ async function registerBitacoraEvent(input: {
   complejoId: string;
   guardiaId?: string;
   token: string;
+  paseId?: string;
+  loteNumber?: string | null;
   visitanteNombre: string | null;
   tipoEvento: "validacion";
   resultado: "autorizado" | "rechazado";
@@ -255,9 +291,11 @@ async function registerBitacoraEvent(input: {
 }) {
   await input.supabase.from("bitacora_accesos").insert({
     complejo_id: input.complejoId,
+    pase_id: input.paseId ?? null,
     token_qr: input.token,
     guardia_id: input.guardiaId ?? null,
     visitante_nombre: input.visitanteNombre,
+    lote_number: input.loteNumber ?? null,
     tipo_evento: input.tipoEvento,
     resultado: input.resultado,
     razon: input.razon ?? null,

@@ -1,14 +1,23 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
-import { getSupabaseServerClient } from "../../lib/supabase";
+import { getSupabaseServiceClient } from "../../lib/supabase";
 const id = Astro.url.searchParams.get("id");
-const supabase = getSupabaseServerClient(Astro.locals.accessToken ?? undefined);
+const supabase = getSupabaseServiceClient();
 const { data: row } = id
   ? await supabase
       .from("bitacora_accesos")
-      .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, origen, token_qr")
+      .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, origen, token_qr, pase_id, guardia_id")
       .eq("id", id)
       .maybeSingle()
+  : { data: null };
+const { data: pass } = row?.pase_id
+  ? await supabase.from("pases_acceso").select("id, creado_por, motivo, notas, created_at").eq("id", row.pase_id).maybeSingle()
+  : { data: null };
+const { data: residenteProfile } = pass?.creado_por
+  ? await supabase.from("profiles").select("id, full_name, lot_number").eq("id", pass.creado_por).maybeSingle()
+  : { data: null };
+const { data: guardiaProfile } = row?.guardia_id
+  ? await supabase.from("profiles").select("id, full_name").eq("id", row.guardia_id).maybeSingle()
   : { data: null };
 ---
 
@@ -54,13 +63,17 @@ const { data: row } = id
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Autorizado por</p>
-          <p class="text-2xl font-semibold text-[#213138]">{Astro.locals.profile?.full_name ?? "Sistema Nauka"}</p>
-          <p class="text-sm text-[#5f6368]">Lote {row?.lote_number ?? "N/A"}</p>
+          <p class="text-2xl font-semibold text-[#213138]">{residenteProfile?.full_name ?? "Sistema Nauka"}</p>
+          <p class="text-sm text-[#5f6368]">Lote {residenteProfile?.lot_number ?? row?.lote_number ?? "N/A"}</p>
         </div>
       </div>
       <div class="mt-4 rounded-xl bg-[#f3f3f4] p-3">
         <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Metodo de verificacion</p>
         <p class="mt-1 text-base font-semibold text-[#213138]">{row?.token_qr ? `QR ${row.token_qr.slice(0, 8)}...` : "Codigo QR unico"}</p>
+      </div>
+      <div class="mt-4 rounded-xl bg-[#f3f3f4] p-3">
+        <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Guardia que validó</p>
+        <p class="mt-1 text-base font-semibold text-[#213138]">{guardiaProfile?.full_name ?? "No identificado"}</p>
       </div>
     </article>
 
@@ -69,6 +82,9 @@ const { data: row } = id
       <div class="space-y-3">
         <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Resultado</span><span class="text-lg font-semibold text-[#213138]">{row?.resultado ?? "N/A"}</span></p>
         <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Razon</span><span class="text-lg font-semibold text-[#213138]">{row?.razon ?? "Sin observaciones"}</span></p>
+        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Motivo del pase</span><span class="text-lg font-semibold text-[#213138]">{pass?.motivo ?? "N/A"}</span></p>
+        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Notas del residente</span><span class="text-lg font-semibold text-[#213138]">{pass?.notas ?? "Sin notas"}</span></p>
+        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Pase creado</span><span class="text-lg font-semibold text-[#213138]">{pass?.created_at ? new Date(pass.created_at).toLocaleString("es-MX") : "N/A"}</span></p>
         <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Registro</span><span class="text-lg font-semibold text-[#213138]">{row?.id ?? "N/A"}</span></p>
       </div>
     </article>

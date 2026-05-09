@@ -37,6 +37,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const motivo = String(body?.motivo ?? "Visita").trim();
     const venceEn = String(body?.venceEn ?? "");
     const telefonoDestino = String(body?.telefonoDestino ?? "").trim();
+    const notas = String(body?.notas ?? "").trim();
     if (!visitanteNombre || !venceEn) {
       return new Response(JSON.stringify({ error: "Datos incompletos." }), { status: 400 });
     }
@@ -49,7 +50,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       motivo,
       visitanteNombre,
       venceEn,
-      telefonoDestino
+      telefonoDestino,
+      notas
     });
 
     return new Response(JSON.stringify({ pass }), {
