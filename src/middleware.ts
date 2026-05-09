@@ -24,17 +24,32 @@ function roleHome(role: AppRole): string {
   return "/residente/inicio";
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<null>((resolve) => {
+    timeoutId = setTimeout(() => resolve(null), ms);
+  });
+  const result = await Promise.race([promise, timeoutPromise]);
+  if (timeoutId) clearTimeout(timeoutId);
+  return result as T | null;
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const pathname = context.url.pathname;
   const accessToken = context.cookies.get("sb-access-token")?.value;
+  const publicPath = isPublicPath(pathname);
+  const requiredRole = pathname.startsWith("/api") ? getRequiredRole(pathname.replace("/api", "")) : getRequiredRole(pathname);
+  const shouldResolveAuth = Boolean(accessToken && (!publicPath || pathname === "/" || pathname === "/registro"));
 
   let user = null;
   let profile: UserProfile | null = null;
   try {
-    if (accessToken) {
-      user = await getUserFromAccessToken(accessToken);
+    if (shouldResolveAuth && accessToken) {
+      user = await withTimeout(getUserFromAccessToken(accessToken), 1200);
       if (user) {
-        profile = await getProfileForUser(user.id, accessToken);
+        profile = await withTimeout(getProfileForUser(user.id, accessToken), 1200);
+      } else if (publicPath) {
+        context.cookies.delete("sb-access-token", { path: "/" });
       }
     }
   } catch {
@@ -49,21 +64,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   try {
     if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
-      const requiredApiRole = getRequiredRole(pathname.replace("/api", ""));
-      if (requiredApiRole && (!profile || profile.role !== requiredApiRole)) {
+      if (requiredRole && (!profile || profile.role !== requiredRole)) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
       }
       return next();
     }
 
-    if (isPublicPath(pathname)) {
+    if (publicPath) {
       if (user && profile && (pathname === "/" || pathname === "/registro")) {
         return context.redirect(roleHome(profile.role));
       }
       return next();
     }
 
-    const requiredRole = getRequiredRole(pathname);
     if (!requiredRole) return next();
 
     if (!user || !profile) {
