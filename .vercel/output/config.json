@@ -34,10 +34,6 @@
 		{
 			"src": "^/residente/nuevo-pase/?$",
 			"dest": "_render"
-		},
-		{
-			"src": "^/$",
-			"dest": "_render"
 		}
 	]
 }
