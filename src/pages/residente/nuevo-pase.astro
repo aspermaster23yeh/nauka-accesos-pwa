@@ -30,11 +30,6 @@ import AppLayout from "../../layouts/AppLayout.astro";
         </select>
       </label>
 
-      <label class="block space-y-2">
-        <span class="text-3xl font-medium text-[#213138]">WhatsApp destino</span>
-        <input id="phone-destination" class="h-14 w-full rounded-xl bg-[#f3f3f4] px-4 text-xl outline-none focus:ring-2 focus:ring-[#213138]/25" placeholder="+5213110000000" />
-      </label>
-
       <div class="grid grid-cols-2 gap-3">
         <label class="block space-y-2">
           <span class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Estado de prueba</span>
@@ -54,7 +49,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
 
       <button id="generate-pass" type="button" class="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-2xl font-semibold text-white">
         <span class="material-symbols-outlined">qr_code_2</span>
-        Generar y Compartir
+        Generar pase
       </button>
     </form>
 
@@ -83,7 +78,6 @@ import AppLayout from "../../layouts/AppLayout.astro";
   const previewPassLink = document.getElementById("preview-pass-link");
   const visitDate = document.getElementById("visit-date");
   const visitTime = document.getElementById("visit-time");
-  const phoneDestination = document.getElementById("phone-destination");
 
   let currentCode = "";
   let currentShareUrl = "";
@@ -103,7 +97,6 @@ import AppLayout from "../../layouts/AppLayout.astro";
     const name = visitorName instanceof HTMLInputElement ? visitorName.value.trim() : "";
     const reason = visitReason instanceof HTMLSelectElement ? visitReason.value : "Visita";
     const venceEn = combineDateTime();
-    const telefonoDestino = phoneDestination instanceof HTMLInputElement ? phoneDestination.value.trim() : "";
     if (!name || !venceEn) {
       alert("Completa nombre, fecha y hora.");
       return;
@@ -114,8 +107,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
       body: JSON.stringify({
         visitanteNombre: name,
         motivo: reason,
-        venceEn,
-        telefonoDestino
+        venceEn
       })
     });
     if (!response.ok) {
@@ -134,6 +126,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
     if (previewPassLink instanceof HTMLAnchorElement) {
       previewPassLink.href = `/residente/pase-demo?code=${encodeURIComponent(currentCode)}&state=${encodeURIComponent(state)}&type=${encodeURIComponent(type)}`;
     }
+    window.location.href = `/residente/pase-demo?code=${encodeURIComponent(currentCode)}&state=${encodeURIComponent(state)}&type=${encodeURIComponent(type)}`;
     if (generatedPass) {
       generatedPass.classList.add("ring-2", "ring-[#213138]/15");
     }
