@@ -21,7 +21,7 @@ function mapRegisterError(message: string): string {
   return message;
 }
 
-export const POST: APIRoute = async ({ request, cookies, url }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const formData = await request.formData();
     const fullName = String(formData.get("full_name") ?? "").trim();
@@ -104,8 +104,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     return new Response(null, {
       status: 303,
       headers: {
-        Location:
-          "/auth/resultado?status=success&title=Registro%20exitoso&message=Tu%20cuenta%20se%20registro%20correctamente&next=/residente/inicio"
+        Location: "/residente/inicio"
       }
     });
   } catch (error) {

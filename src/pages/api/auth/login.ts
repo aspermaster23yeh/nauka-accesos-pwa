@@ -71,17 +71,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const target =
       profile.role === "admin" ? "/admin/dashboard" : profile.role === "guardia" ? "/guardia/escaner" : "/residente/inicio";
-    const roleTitle =
-      profile.role === "admin"
-        ? "Panel de Administracion listo"
-        : profile.role === "guardia"
-          ? "Acceso de Guardia habilitado"
-          : "Bienvenido Residente";
-
     return new Response(null, {
       status: 303,
       headers: {
-        Location: `/auth/resultado?status=success&title=${encodeURIComponent(roleTitle)}&message=Inicio%20de%20sesion%20correcto&next=${encodeURIComponent(target)}`
+        Location: target
       }
     });
   } catch (error) {
