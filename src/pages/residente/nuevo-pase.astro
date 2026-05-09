@@ -96,7 +96,9 @@ import AppLayout from "../../layouts/AppLayout.astro";
   const combineDateTime = () => {
     if (!(visitDate instanceof HTMLInputElement) || !(visitTime instanceof HTMLInputElement)) return "";
     if (!visitDate.value || !visitTime.value) return "";
-    return `${visitDate.value}T${visitTime.value}:00`;
+    const localDateTime = new Date(`${visitDate.value}T${visitTime.value}:00`);
+    if (Number.isNaN(localDateTime.getTime())) return "";
+    return localDateTime.toISOString();
   };
 
   generateButton?.addEventListener("click", async () => {
@@ -106,6 +108,17 @@ import AppLayout from "../../layouts/AppLayout.astro";
     const venceEn = combineDateTime();
     if (!name || !venceEn) {
       alert("Completa nombre, fecha y hora.");
+      return;
+    }
+    const selected = new Date(venceEn);
+    const now = new Date();
+    const maxAllowed = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    if (selected <= now) {
+      alert("La fecha/hora del pase debe ser futura.");
+      return;
+    }
+    if (selected > maxAllowed) {
+      alert("La fecha/hora no puede superar 30 dias.");
       return;
     }
     const response = await fetch("/api/residente/pases", {
@@ -150,4 +163,11 @@ import AppLayout from "../../layouts/AppLayout.astro";
     const text = `Pase Nauka Nayarit%0AVisitante: ${encodeURIComponent(name)}%0AMotivo: ${encodeURIComponent(reason)}%0ACodigo: ${encodeURIComponent(code)}%0AMostrar en caseta: ${encodeURIComponent(url)}`;
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   });
+
+  if (visitDate instanceof HTMLInputElement) {
+    const now = new Date();
+    const max = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    visitDate.min = now.toISOString().slice(0, 10);
+    visitDate.max = max.toISOString().slice(0, 10);
+  }
 </script>

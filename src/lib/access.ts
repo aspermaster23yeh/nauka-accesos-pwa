@@ -1,5 +1,8 @@
 import { getSupabaseServiceClient } from "./supabase";
 
+const MIN_PASS_LEAD_MINUTES = 1;
+const MAX_PASS_WINDOW_DAYS = 30;
+
 export type AccessStatus = "authorized" | "expired" | "not_found";
 
 export interface AuthContext {
@@ -165,6 +168,15 @@ export async function createVisitorPass(input: {
   const expiry = new Date(input.venceEn);
   if (Number.isNaN(expiry.getTime())) {
     throw new Error("La fecha de expiración es inválida.");
+  }
+  const now = new Date();
+  const minAllowed = new Date(now.getTime() + MIN_PASS_LEAD_MINUTES * 60 * 1000);
+  const maxAllowed = new Date(now.getTime() + MAX_PASS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  if (expiry < minAllowed) {
+    throw new Error("La fecha/hora del pase debe ser futura.");
+  }
+  if (expiry > maxAllowed) {
+    throw new Error(`La fecha/hora del pase no puede superar ${MAX_PASS_WINDOW_DAYS} dias.`);
   }
 
   const { data, error } = await supabase
