@@ -1,56 +1,13 @@
 /* empty css                                       */
-import { e as createAstro, f as createComponent, r as renderTemplate, k as renderComponent, m as maybeRenderHead, h as addAttribute } from '../../chunks/astro/server_s_qG7lfK.mjs';
+import { f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead } from '../../chunks/astro/server_Dea09CxC.mjs';
 import 'piccolore';
-import { $ as $$MainLayout } from '../../chunks/MainLayout_ZbZW5qyW.mjs';
-import { c as createVisitorPass } from '../../chunks/access_C5HYczi0.mjs';
+import { $ as $$AppLayout } from '../../chunks/AppLayout_CJaypjtX.mjs';
 export { renderers } from '../../renderers.mjs';
 
-var __freeze = Object.freeze;
-var __defProp = Object.defineProperty;
-var __template = (cooked, raw) => __freeze(__defProp(cooked, "raw", { value: __freeze(raw || cooked.slice()) }));
-var _a;
-const $$Astro = createAstro("https://naukanayarit.local");
-const $$NuevoPase = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
-  Astro2.self = $$NuevoPase;
-  const complejoId = Astro2.url.searchParams.get("complejo_id") ?? "complejo-1";
-  let qrToken = "";
-  let shareText = "";
-  let errorMessage = "";
-  if (Astro2.request.method === "POST") {
-    const formData = await Astro2.request.formData();
-    const visitanteNombre = String(formData.get("visitante_nombre") ?? "");
-    const anfitrionNombre = String(formData.get("anfitrion_nombre") ?? "");
-    const venceEn = String(formData.get("vence_en") ?? "");
-    const telefonoDestino = String(formData.get("telefono_destino") ?? "");
-    const complejo = String(formData.get("complejo_id") ?? complejoId);
-    try {
-      qrToken = await createVisitorPass({
-        complejoId: complejo,
-        visitanteNombre,
-        anfitrionNombre,
-        venceEn,
-        telefonoDestino
-      });
-      const passUrl = `${Astro2.url.origin}/guardia/escaner?complejo_id=${encodeURIComponent(complejo)}&token=${encodeURIComponent(qrToken)}`;
-      shareText = `Pase de acceso Nauka Nayarit
-Visitante: ${visitanteNombre}
-QR: ${passUrl}`;
-    } catch (error) {
-      errorMessage = error instanceof Error ? error.message : "No se pudo crear el pase.";
-    }
-  }
-  return renderTemplate(_a || (_a = __template(["", ' <script>\n  const shareButton = document.getElementById("share-whatsapp");\n  if (shareButton) {\n    shareButton.addEventListener("click", async () => {\n      const text = shareButton.getAttribute("data-share-text") ?? "";\n      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);\n\n      if (navigator.share && isMobile) {\n        try {\n          await navigator.share({\n            title: "Pase Nauka Nayarit",\n            text\n          });\n          return;\n        } catch {\n          // Continue to fallback when user cancels or platform fails.\n        }\n      }\n\n      const encoded = encodeURIComponent(text);\n      window.open(`https://wa.me/?text=${encoded}`, "_blank", "noopener,noreferrer");\n    });\n  }\n<\/script>'], ["", ' <script>\n  const shareButton = document.getElementById("share-whatsapp");\n  if (shareButton) {\n    shareButton.addEventListener("click", async () => {\n      const text = shareButton.getAttribute("data-share-text") ?? "";\n      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);\n\n      if (navigator.share && isMobile) {\n        try {\n          await navigator.share({\n            title: "Pase Nauka Nayarit",\n            text\n          });\n          return;\n        } catch {\n          // Continue to fallback when user cancels or platform fails.\n        }\n      }\n\n      const encoded = encodeURIComponent(text);\n      window.open(\\`https://wa.me/?text=\\${encoded}\\`, "_blank", "noopener,noreferrer");\n    });\n  }\n<\/script>'])), renderComponent($$result, "MainLayout", $$MainLayout, { "title": "Nuevo pase de visitante" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<section class="lens-section rounded-2xl p-5"> <form method="POST" class="grid gap-3"> <input type="hidden" name="complejo_id"${addAttribute(complejoId, "value")}> <label class="flex flex-col gap-1 text-sm font-semibold">
-Nombre del visitante
-<input required name="visitante_nombre" class="rounded-xl bg-white px-3 py-3 text-base font-medium"> </label> <label class="flex flex-col gap-1 text-sm font-semibold">
-Nombre del residente/anfitrión
-<input required name="anfitrion_nombre" class="rounded-xl bg-white px-3 py-3 text-base font-medium"> </label> <label class="flex flex-col gap-1 text-sm font-semibold">
-Vence en
-<input required type="datetime-local" name="vence_en" class="rounded-xl bg-white px-3 py-3 text-base font-medium"> </label> <label class="flex flex-col gap-1 text-sm font-semibold">
-Teléfono de WhatsApp
-<input required name="telefono_destino" class="rounded-xl bg-white px-3 py-3 text-base font-medium"> </label> <button class="rounded-xl bg-slate-900 px-4 py-3 text-base font-bold text-white">Generar pase</button> </form> </section> ${errorMessage && renderTemplate`<section class="mt-4 rounded-2xl bg-red-100 px-4 py-4 text-red-900"> <p class="text-base font-bold">${errorMessage}</p> </section>`}${qrToken && renderTemplate`<section class="mt-5 lens-section-muted rounded-2xl p-5"> <p class="text-sm font-semibold uppercase tracking-wide sunlight-subtext">Token QR generado</p> <p class="mt-2 break-all text-xl font-extrabold">${qrToken}</p> <button id="share-whatsapp" type="button"${addAttribute(shareText, "data-share-text")} class="mt-4 rounded-xl bg-emerald-700 px-4 py-3 text-base font-bold text-white">
-Compartir por WhatsApp
-</button> </section>`}` }));
+const $$NuevoPase = createComponent(($$result, $$props, $$slots) => {
+  return renderTemplate`${renderComponent($$result, "AppLayout", $$AppLayout, { "title": "Nuevo Acceso - Nauka Nayarit", "topBar": { title: "Nuevo Acceso", leftIcon: "arrow_back", leftHref: "/residente/inicio" } }, { "default": ($$result2) => renderTemplate` ${maybeRenderHead()}<section class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]"> <form class="space-y-6"> <label class="block space-y-2"> <span class="text-3xl font-medium text-[#213138]">Nombre del Visitante</span> <input class="h-14 w-full rounded-xl bg-[#f3f3f4] px-4 text-xl outline-none focus:ring-2 focus:ring-[#213138]/25" placeholder="Ej. Juan Pérez"> </label> <label class="block space-y-2"> <span class="text-3xl font-medium text-[#213138]">Fecha de Visita</span> <input type="date" class="h-14 w-full rounded-xl bg-[#f3f3f4] px-4 text-xl outline-none focus:ring-2 focus:ring-[#213138]/25"> </label> <label class="block space-y-2"> <span class="text-3xl font-medium text-[#213138]">Hora Aproximada</span> <input type="time" class="h-14 w-full rounded-xl bg-[#f3f3f4] px-4 text-xl outline-none focus:ring-2 focus:ring-[#213138]/25"> </label> <label class="block space-y-2"> <span class="text-3xl font-medium text-[#213138]">Motivo</span> <select class="h-14 w-full rounded-xl bg-[#f3f3f4] px-4 text-xl outline-none focus:ring-2 focus:ring-[#213138]/25"> <option>Seleccione un motivo</option> <option>Visita</option> <option>Proveedor</option> <option>Mantenimiento</option> </select> </label> <button type="button" class="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-2xl font-semibold text-white"> <span class="material-symbols-outlined">qr_code_2</span>
+Generar y Compartir
+</button> </form> <div class="mt-6 rounded-xl bg-[#eeeeee] p-6 text-center"> <div class="mx-auto grid h-52 w-52 place-items-center rounded-xl bg-white shadow-sm"> <span class="material-symbols-outlined text-8xl text-[#37474f]">qr_code_2</span> </div> <p class="mt-4 text-sm font-bold uppercase tracking-[0.08em] text-[#5f6368]">Codigo temporal generado</p> <button type="button" class="mt-4 h-14 w-full rounded-xl bg-[#25D366]/15 text-2xl font-semibold text-[#005227]">Compartir por WhatsApp</button> </div> </section> ` })}`;
 }, "/Users/aspermaster23/nauka-accesos-pwa/src/pages/residente/nuevo-pase.astro", void 0);
 
 const $$file = "/Users/aspermaster23/nauka-accesos-pwa/src/pages/residente/nuevo-pase.astro";

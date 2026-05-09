@@ -1,24 +1,14 @@
 /* empty css                                       */
-import { e as createAstro, f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../chunks/astro/server_s_qG7lfK.mjs';
+import { f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead } from '../../chunks/astro/server_Dea09CxC.mjs';
 import 'piccolore';
-import { $ as $$MainLayout } from '../../chunks/MainLayout_ZbZW5qyW.mjs';
-import { g as getBitacoraByComplejo } from '../../chunks/access_C5HYczi0.mjs';
+import { $ as $$AppLayout } from '../../chunks/AppLayout_CJaypjtX.mjs';
+import { g as guardNav } from '../../chunks/nav_kopBlL7J.mjs';
 export { renderers } from '../../renderers.mjs';
 
-const $$Astro = createAstro("https://naukanayarit.local");
-const $$Bitacora = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
-  Astro2.self = $$Bitacora;
-  const complejoId = Astro2.url.searchParams.get("complejo_id") ?? "complejo-1";
-  const search = Astro2.url.searchParams.get("q") ?? "";
-  const registros = await getBitacoraByComplejo(complejoId, search);
-  return renderTemplate`${renderComponent($$result, "MainLayout", $$MainLayout, { "title": "Bit\xE1cora de accesos" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<section class="lens-section rounded-2xl p-5"> <form class="grid gap-3 sm:grid-cols-3"> <label class="flex flex-col gap-1 text-sm font-semibold">
-Complejo
-<select name="complejo_id" class="rounded-xl bg-white px-3 py-3 text-base font-medium"> <option value="complejo-1"${addAttribute(complejoId === "complejo-1", "selected")}>Complejo 1</option> <option value="complejo-2"${addAttribute(complejoId === "complejo-2", "selected")}>Complejo 2</option> <option value="complejo-3"${addAttribute(complejoId === "complejo-3", "selected")}>Complejo 3</option> </select> </label> <label class="flex flex-col gap-1 text-sm font-semibold sm:col-span-2">
-Buscar por visitante o resultado
-<input type="search" name="q"${addAttribute(search, "value")} class="rounded-xl bg-white px-3 py-3 text-base font-medium" placeholder="Ej. Autorizado"> </label> <button class="w-full rounded-xl bg-slate-900 px-4 py-3 text-base font-bold text-white sm:w-auto">
-Aplicar filtros
-</button> </form> </section> <section class="mt-5 lens-section-muted rounded-2xl p-4"> <ul class="space-y-3"> ${registros.map((row) => renderTemplate`<li class="rounded-2xl bg-white px-4 py-4"> <p class="text-lg font-bold">${row.visitante_nombre}</p> <p class="text-sm font-semibold sunlight-subtext"> ${new Date(row.created_at).toLocaleString("es-MX")} - ${row.origen} </p> <p class="mt-1 text-base font-bold">${row.resultado}</p> </li>`)} </ul> </section> ` })}`;
+const $$Bitacora = createComponent(($$result, $$props, $$slots) => {
+  return renderTemplate`${renderComponent($$result, "AppLayout", $$AppLayout, { "title": "Bitacora - Nauka Nayarit", "topBar": { title: "Nauka Nayarit", leftIcon: "person", leftHref: "#", rightIcon: "notifications", rightHref: "#" }, "navItems": guardNav, "activeNav": "bitacora", "pageTitle": "Registro Digital" }, { "default": ($$result2) => renderTemplate` ${maybeRenderHead()}<p class="-mt-5 mb-6 text-sm font-bold uppercase tracking-[0.08em] text-[#7a7e82]">Bitacora de Accesos · Octubre 24, 2023</p> <div class="space-y-3"> <div class="relative"> <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#73787b]">search</span> <input class="h-12 w-full rounded-xl bg-[#f3f3f4] pl-11 pr-4 text-base outline-none" placeholder="Buscar por nombre, lote o vehiculo..."> </div> <button class="flex h-12 w-full items-center gap-2 rounded-xl bg-[#f3f3f4] px-4 text-base font-semibold text-[#213138]"> <span class="material-symbols-outlined text-lg">filter_list</span>
+Filtros
+</button> </div> <div class="my-5 flex items-center gap-3"> <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">Hoy</p> <div class="h-px flex-1 bg-[#eeeeee]"></div> </div> <div class="space-y-3"> <a href="/admin/detalle-movimiento" class="flex items-center gap-3 rounded-xl bg-white p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)]"> <div class="grid h-11 w-11 place-items-center rounded-full bg-[#83fba5]/25 text-[#006d36]"><span class="material-symbols-outlined">login</span></div> <div> <p class="text-2xl font-semibold text-[#213138]">14:30 Carlos Ruiz</p> <p class="text-base text-[#5f6368]">VISITA · Lote B-12</p> </div> </a> <a href="/admin/detalle-movimiento" class="flex items-center gap-3 rounded-xl bg-white p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)]"> <div class="grid h-11 w-11 place-items-center rounded-full bg-[#eeeeee] text-[#5f6368]"><span class="material-symbols-outlined">logout</span></div> <div> <p class="text-2xl font-semibold text-[#213138]">14:15 Roberto Gomez</p> <p class="text-base text-[#5f6368]">PROVEEDOR · Lote A-04</p> </div> </a> <a href="/guardia/acceso-denegado" class="flex items-center gap-3 rounded-xl bg-[#ffdad6]/35 p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)]"> <div class="grid h-11 w-11 place-items-center rounded-full bg-[#ffdad6] text-[#ba1a1a]"><span class="material-symbols-outlined">warning</span></div> <div> <p class="text-2xl font-semibold text-[#93000a]">13:50 Vehiculo No Registrado</p> <p class="text-base text-[#93000a]">ALERTA · Acceso Principal</p> </div> </a> <a href="/admin/detalle-movimiento" class="flex items-center gap-3 rounded-xl bg-white p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)]"> <div class="grid h-11 w-11 place-items-center rounded-full bg-[#83fba5]/25 text-[#006d36]"><span class="material-symbols-outlined">login</span></div> <div> <p class="text-2xl font-semibold text-[#213138]">13:22 Familia Mendoza</p> <p class="text-base text-[#5f6368]">RESIDENTE · Lote C-21</p> </div> </a> </div> ` })}`;
 }, "/Users/aspermaster23/nauka-accesos-pwa/src/pages/admin/bitacora.astro", void 0);
 
 const $$file = "/Users/aspermaster23/nauka-accesos-pwa/src/pages/admin/bitacora.astro";

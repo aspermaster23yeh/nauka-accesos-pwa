@@ -1,26 +1,15 @@
 /* empty css                                       */
-import { e as createAstro, f as createComponent, m as maybeRenderHead, h as addAttribute, l as renderScript, r as renderTemplate, k as renderComponent } from '../../chunks/astro/server_s_qG7lfK.mjs';
+import { f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../chunks/astro/server_Dea09CxC.mjs';
 import 'piccolore';
-import { $ as $$MainLayout } from '../../chunks/MainLayout_ZbZW5qyW.mjs';
-import 'clsx';
+import { $ as $$AppLayout } from '../../chunks/AppLayout_CJaypjtX.mjs';
+import { g as guardNav } from '../../chunks/nav_kopBlL7J.mjs';
+import { l as loginBackground } from '../../chunks/491461670_17919450432084004_8291959886084544470_n_CWABb-a5.mjs';
 export { renderers } from '../../renderers.mjs';
 
-const $$Astro$1 = createAstro("https://naukanayarit.local");
-const $$ScannerIsland = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro$1, $$props, $$slots);
-  Astro2.self = $$ScannerIsland;
-  const { complejoId } = Astro2.props;
-  return renderTemplate`${maybeRenderHead()}<section class="space-y-4"${addAttribute(complejoId, "data-complejo-id")}> <div class="lens-section rounded-2xl p-4"> <p class="text-sm font-semibold uppercase tracking-wide sunlight-subtext">Complejo activo</p> <p class="text-xl font-bold">${complejoId}</p> </div> <video id="scanner-video" class="w-full rounded-3xl bg-slate-900" playsinline muted></video> <div id="scanner-result" class="lens-section-muted rounded-2xl p-5"> <p class="text-lg font-semibold">Apunta la cámara al QR del visitante.</p> </div> </section> ${renderScript($$result, "/Users/aspermaster23/nauka-accesos-pwa/src/components/ScannerIsland.astro?astro&type=script&index=0&lang.ts")}`;
-}, "/Users/aspermaster23/nauka-accesos-pwa/src/components/ScannerIsland.astro", void 0);
-
-const $$Astro = createAstro("https://naukanayarit.local");
 const $$Escaner = createComponent(($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
-  Astro2.self = $$Escaner;
-  const complejoId = Astro2.url.searchParams.get("complejo_id") ?? "complejo-1";
-  return renderTemplate`${renderComponent($$result, "MainLayout", $$MainLayout, { "title": "Esc\xE1ner de accesos" }, { "default": ($$result2) => renderTemplate` ${maybeRenderHead()}<section class="lens-section rounded-2xl p-5"> <p class="text-lg font-semibold">
-Mantén brillo alto en pantalla y alinea el QR al centro. El contraste está optimizado para lectura bajo sol.
-</p> </section> <section class="mt-4"> ${renderComponent($$result2, "ScannerIsland", $$ScannerIsland, { "complejoId": complejoId })} </section> ` })}`;
+  return renderTemplate`${renderComponent($$result, "AppLayout", $$AppLayout, { "title": "Escaner Guardia - Nauka Nayarit", "topBar": { title: "Nauka Nayarit", leftIcon: "person", leftHref: "#", rightIcon: "notifications", rightHref: "#" }, "navItems": guardNav, "activeNav": "seguridad" }, { "default": ($$result2) => renderTemplate` ${maybeRenderHead()}<section class="relative -mx-4 -mt-6 mb-6 h-[45vh] overflow-hidden bg-[#2f3131]"> <img${addAttribute(loginBackground.src, "src")} alt="camera bg" class="h-full w-full object-cover blur-sm brightness-75"> <div class="absolute inset-0 grid place-items-center"> <div class="relative h-64 w-64"> <div class="absolute left-0 top-0 h-12 w-12 rounded-tl-lg border-l-4 border-t-4 border-white/85"></div> <div class="absolute right-0 top-0 h-12 w-12 rounded-tr-lg border-r-4 border-t-4 border-white/85"></div> <div class="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/85"></div> <div class="absolute bottom-0 right-0 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white/85"></div> <div class="absolute left-0 top-1/2 h-1 w-full bg-[#83fba5] shadow-[0_0_12px_2px_rgba(131,251,165,0.45)]"></div> </div> </div> </section> <section class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]"> <div class="mb-5 flex items-center gap-2 rounded-xl bg-[#83fba5]/20 p-3 text-[#006d36]"> <span class="material-symbols-outlined">check_circle</span> <h2 class="text-5xl font-bold tracking-[-0.01em]">Visitante Autorizado</h2> </div> <p class="text-sm font-bold uppercase tracking-[0.08em] text-[#5f6368]">Nombre</p> <p class="mt-1 text-5xl font-semibold text-[#213138]">Juan Perez</p> <hr class="my-4 border-[#eeeeee]"> <p class="text-sm font-bold uppercase tracking-[0.08em] text-[#5f6368]">Destino</p> <p class="mt-1 text-6xl font-extrabold tracking-[-0.02em] text-[#213138]">Lote A-22</p> <a href="/admin/detalle-movimiento" class="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#006d36] to-[#005227] text-2xl font-semibold text-white"> <span class="material-symbols-outlined">login</span>
+Registrar entrada
+</a> </section> ` })}`;
 }, "/Users/aspermaster23/nauka-accesos-pwa/src/pages/guardia/escaner.astro", void 0);
 
 const $$file = "/Users/aspermaster23/nauka-accesos-pwa/src/pages/guardia/escaner.astro";

@@ -1,0 +1,27 @@
+---
+interface Props {
+  title: string;
+  leftIcon?: string;
+  leftHref?: string;
+  rightIcon?: string;
+  rightHref?: string;
+}
+
+const { title, leftIcon = "arrow_back", leftHref = "#", rightIcon, rightHref = "#" } = Astro.props;
+---
+
+<header class="sticky top-0 z-40 flex items-center justify-between border-b border-[#ececec] bg-white/90 px-4 py-3 backdrop-blur">
+  <a href={leftHref} class="grid h-10 w-10 place-items-center rounded-full text-[#213138] transition hover:bg-[#eeeeee]">
+    <span class="material-symbols-outlined">{leftIcon}</span>
+  </a>
+  <h2 class="text-lg font-bold tracking-tight text-[#213138]">{title}</h2>
+  {
+    rightIcon ? (
+      <a href={rightHref} class="grid h-10 w-10 place-items-center rounded-full text-[#213138] transition hover:bg-[#eeeeee]">
+        <span class="material-symbols-outlined">{rightIcon}</span>
+      </a>
+    ) : (
+      <span class="h-10 w-10"></span>
+    )
+  }
+</header>

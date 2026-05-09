@@ -24,11 +24,23 @@
 			"dest": "_render"
 		},
 		{
+			"src": "^/admin/detalle-movimiento/?$",
+			"dest": "_render"
+		},
+		{
 			"src": "^/api/validar-qr/?$",
 			"dest": "_render"
 		},
 		{
+			"src": "^/guardia/acceso-denegado/?$",
+			"dest": "_render"
+		},
+		{
 			"src": "^/guardia/escaner/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/residente/inicio/?$",
 			"dest": "_render"
 		},
 		{
