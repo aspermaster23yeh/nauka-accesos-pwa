@@ -28,7 +28,7 @@ export const prerender = true;
 
   <section class="relative -mx-4 -mt-6 mb-6 h-[45vh] overflow-hidden bg-[#2f3131]">
     <video id="camera-video" class="absolute inset-0 hidden h-full w-full object-cover" autoplay playsinline muted></video>
-    <img src={loginBackground.src} alt="camera bg" class="h-full w-full object-cover blur-sm brightness-75" />
+    <img id="camera-fallback" src={loginBackground.src} alt="camera bg" class="h-full w-full object-cover blur-sm brightness-75" />
     <div class="absolute inset-0 grid place-items-center">
       <div class="relative h-64 w-64">
         <div class="absolute left-0 top-0 h-12 w-12 rounded-tl-lg border-l-4 border-t-4 border-white/85"></div>
@@ -67,6 +67,7 @@ export const prerender = true;
   const cameraPermission = document.getElementById("camera-permission");
   const cameraStatus = document.getElementById("camera-status");
   const cameraVideo = document.getElementById("camera-video");
+  const cameraFallback = document.getElementById("camera-fallback");
 
   let accessType = "entrada";
   let qrState = "valido";
@@ -109,6 +110,9 @@ export const prerender = true;
       });
       cameraVideo.srcObject = stream;
       cameraVideo.classList.remove("hidden");
+      if (cameraFallback instanceof HTMLImageElement) {
+        cameraFallback.classList.add("hidden");
+      }
       setCameraStatus("Camara activa (modo escaner).");
       if (cameraPermission) {
         cameraPermission.textContent = "Camara activa";
