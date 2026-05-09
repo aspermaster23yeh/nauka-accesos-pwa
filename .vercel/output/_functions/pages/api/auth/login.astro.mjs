@@ -1,4 +1,4 @@
-import { b as getSupabaseServerClient } from '../../../chunks/supabase_DBfBwpCC.mjs';
+import { b as getSupabaseServerClient } from '../../../chunks/supabase_BRSQsonA.mjs';
 export { renderers } from '../../../renderers.mjs';
 
 const prerender = false;

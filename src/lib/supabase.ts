@@ -24,7 +24,14 @@ function assertEnv(name: string, value: string | undefined): string {
   return value;
 }
 
+function hasSupabaseConfig(): boolean {
+  return Boolean(supabaseUrl && supabaseAnonKey);
+}
+
 export function getSupabaseServerClient(accessToken?: string): SupabaseClient<any, PublicSchema, any> {
+  if (!hasSupabaseConfig()) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
   return createClient(assertEnv("PUBLIC_SUPABASE_URL", supabaseUrl), assertEnv("PUBLIC_SUPABASE_ANON_KEY", supabaseAnonKey), {
     auth: {
       persistSession: false,
@@ -41,28 +48,39 @@ export function getSupabaseServerClient(accessToken?: string): SupabaseClient<an
 }
 
 export function getSupabaseBrowserClient(): SupabaseClient<any, PublicSchema, any> {
+  if (!hasSupabaseConfig()) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
   return createClient(assertEnv("PUBLIC_SUPABASE_URL", supabaseUrl), assertEnv("PUBLIC_SUPABASE_ANON_KEY", supabaseAnonKey));
 }
 
 export async function getUserFromAccessToken(accessToken?: string): Promise<User | null> {
   if (!accessToken) return null;
-  const client = getSupabaseServerClient(accessToken);
-  const {
-    data: { user },
-    error
-  } = await client.auth.getUser(accessToken);
-  if (error) return null;
-  return user;
+  try {
+    const client = getSupabaseServerClient(accessToken);
+    const {
+      data: { user },
+      error
+    } = await client.auth.getUser(accessToken);
+    if (error) return null;
+    return user;
+  } catch {
+    return null;
+  }
 }
 
 export async function getProfileForUser(userId: string, accessToken?: string): Promise<UserProfile | null> {
-  const client = getSupabaseServerClient(accessToken);
-  const { data, error } = await client
-    .from("profiles")
-    .select("id, role, full_name, lot_number, complejo_id")
-    .eq("id", userId)
-    .maybeSingle();
+  try {
+    const client = getSupabaseServerClient(accessToken);
+    const { data, error } = await client
+      .from("profiles")
+      .select("id, role, full_name, lot_number, complejo_id")
+      .eq("id", userId)
+      .maybeSingle();
 
-  if (error || !data) return null;
-  return data as UserProfile;
+    if (error || !data) return null;
+    return data as UserProfile;
+  } catch {
+    return null;
+  }
 }

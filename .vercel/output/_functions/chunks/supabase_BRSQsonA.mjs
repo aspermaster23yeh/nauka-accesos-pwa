@@ -8,7 +8,13 @@ function assertEnv(name, value) {
   }
   return value;
 }
+function hasSupabaseConfig() {
+  return Boolean(supabaseAnonKey);
+}
 function getSupabaseServerClient(accessToken) {
+  if (!hasSupabaseConfig()) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
   return createClient(assertEnv("PUBLIC_SUPABASE_URL", supabaseUrl), assertEnv("PUBLIC_SUPABASE_ANON_KEY", supabaseAnonKey), {
     auth: {
       persistSession: false,
@@ -23,19 +29,27 @@ function getSupabaseServerClient(accessToken) {
 }
 async function getUserFromAccessToken(accessToken) {
   if (!accessToken) return null;
-  const client = getSupabaseServerClient(accessToken);
-  const {
-    data: { user },
-    error
-  } = await client.auth.getUser(accessToken);
-  if (error) return null;
-  return user;
+  try {
+    const client = getSupabaseServerClient(accessToken);
+    const {
+      data: { user },
+      error
+    } = await client.auth.getUser(accessToken);
+    if (error) return null;
+    return user;
+  } catch {
+    return null;
+  }
 }
 async function getProfileForUser(userId, accessToken) {
-  const client = getSupabaseServerClient(accessToken);
-  const { data, error } = await client.from("profiles").select("id, role, full_name, lot_number, complejo_id").eq("id", userId).maybeSingle();
-  if (error || !data) return null;
-  return data;
+  try {
+    const client = getSupabaseServerClient(accessToken);
+    const { data, error } = await client.from("profiles").select("id, role, full_name, lot_number, complejo_id").eq("id", userId).maybeSingle();
+    if (error || !data) return null;
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export { getProfileForUser as a, getSupabaseServerClient as b, getUserFromAccessToken as g };

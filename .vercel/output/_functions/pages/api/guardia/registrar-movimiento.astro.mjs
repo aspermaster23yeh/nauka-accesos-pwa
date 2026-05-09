@@ -1,4 +1,4 @@
-import { r as registerAccessMovement } from '../../../chunks/access_B3PXjcY6.mjs';
+import { r as registerAccessMovement } from '../../../chunks/access_DF6pBMVW.mjs';
 export { renderers } from '../../../renderers.mjs';
 
 const prerender = false;

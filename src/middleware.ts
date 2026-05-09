@@ -30,11 +30,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   let user = null;
   let profile: UserProfile | null = null;
-  if (accessToken) {
-    user = await getUserFromAccessToken(accessToken);
-    if (user) {
-      profile = await getProfileForUser(user.id, accessToken);
+  try {
+    if (accessToken) {
+      user = await getUserFromAccessToken(accessToken);
+      if (user) {
+        profile = await getProfileForUser(user.id, accessToken);
+      }
     }
+  } catch {
+    user = null;
+    profile = null;
   }
 
   context.locals.user = user;
@@ -42,29 +47,37 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.role = profile?.role ?? null;
   context.locals.accessToken = accessToken ?? null;
 
-  if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
-    const requiredApiRole = getRequiredRole(pathname.replace("/api", ""));
-    if (requiredApiRole && (!profile || profile.role !== requiredApiRole)) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  try {
+    if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
+      const requiredApiRole = getRequiredRole(pathname.replace("/api", ""));
+      if (requiredApiRole && (!profile || profile.role !== requiredApiRole)) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+      }
+      return next();
     }
-    return next();
-  }
 
-  if (isPublicPath(pathname)) {
-    if (user && profile && (pathname === "/" || pathname === "/registro")) {
+    if (isPublicPath(pathname)) {
+      if (user && profile && (pathname === "/" || pathname === "/registro")) {
+        return context.redirect(roleHome(profile.role));
+      }
+      return next();
+    }
+
+    const requiredRole = getRequiredRole(pathname);
+    if (!requiredRole) return next();
+
+    if (!user || !profile) {
+      return context.redirect("/");
+    }
+    if (profile.role !== requiredRole) {
       return context.redirect(roleHome(profile.role));
     }
     return next();
-  }
-
-  const requiredRole = getRequiredRole(pathname);
-  if (!requiredRole) return next();
-
-  if (!user || !profile) {
+  } catch {
+    if (isPublicPath(pathname)) return next();
+    if (pathname.startsWith("/api")) {
+      return new Response(JSON.stringify({ error: "Server auth middleware failed" }), { status: 500 });
+    }
     return context.redirect("/");
   }
-  if (profile.role !== requiredRole) {
-    return context.redirect(roleHome(profile.role));
-  }
-  return next();
 });

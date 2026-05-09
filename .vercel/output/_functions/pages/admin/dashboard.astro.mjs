@@ -3,8 +3,8 @@ import { e as createAstro, f as createComponent, k as renderComponent, r as rend
 import 'piccolore';
 import { $ as $$AppLayout } from '../../chunks/AppLayout_BoRoxKkH.mjs';
 import { a as adminNav } from '../../chunks/nav_DLwwW0lq.mjs';
-import { g as getAdminMetrics } from '../../chunks/access_B3PXjcY6.mjs';
-import { b as getSupabaseServerClient } from '../../chunks/supabase_DBfBwpCC.mjs';
+import { g as getAdminMetrics } from '../../chunks/access_DF6pBMVW.mjs';
+import { b as getSupabaseServerClient } from '../../chunks/supabase_BRSQsonA.mjs';
 export { renderers } from '../../renderers.mjs';
 
 const $$Astro = createAstro("https://naukanayarit.local");

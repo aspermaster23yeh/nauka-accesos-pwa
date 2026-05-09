@@ -1,4 +1,4 @@
-import { g as getAdminMetrics, a as getBitacoraByComplejo } from '../../../chunks/access_B3PXjcY6.mjs';
+import { g as getAdminMetrics, a as getBitacoraByComplejo } from '../../../chunks/access_DF6pBMVW.mjs';
 export { renderers } from '../../../renderers.mjs';
 
 const prerender = false;
