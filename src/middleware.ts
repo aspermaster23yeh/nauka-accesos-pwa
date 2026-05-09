@@ -15,7 +15,7 @@ function getRequiredRole(pathname: string): AppRole | null {
 }
 
 function isPublicPath(pathname: string): boolean {
-  return pathname === "/" || pathname === "/registro" || pathname.startsWith("/api/auth");
+  return pathname === "/" || pathname === "/registro" || pathname.startsWith("/auth") || pathname.startsWith("/api/auth");
 }
 
 function roleHome(role: AppRole): string {
