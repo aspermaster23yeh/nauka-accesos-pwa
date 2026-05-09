@@ -1,6 +1,9 @@
 ---
 import "../styles/global.css";
 import loginBackground from "../../491461670_17919450432084004_8291959886084544470_n.jpg";
+
+const error = Astro.url.searchParams.get("error");
+const success = Astro.url.searchParams.get("success");
 ---
 
 <!doctype html>
@@ -27,6 +30,8 @@ import loginBackground from "../../491461670_17919450432084004_82919598860845444
 
         <form class="space-y-5 rounded-[22px] bg-white px-5 py-6 text-slate-800 shadow-xl" method="post" action="/api/auth/login">
           <h1 class="text-4xl font-semibold tracking-tight">Iniciar Sesion</h1>
+          {error && <p class="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
+          {success && <p class="rounded-lg bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700">{success}</p>}
 
           <div class="space-y-2">
             <label class="block text-sm font-semibold uppercase tracking-[0.08em] text-slate-700" for="identity">

@@ -1,6 +1,8 @@
 ---
 import "../styles/global.css";
 import loginBackground from "../../491461670_17919450432084004_8291959886084544470_n.jpg";
+
+const error = Astro.url.searchParams.get("error");
 ---
 
 <!doctype html>
@@ -25,6 +27,7 @@ import loginBackground from "../../491461670_17919450432084004_82919598860845444
             <h1 class="text-5xl font-semibold tracking-tight">Crear Cuenta</h1>
             <p class="text-lg leading-relaxed text-slate-600">Acceso exclusivo a residentes de NAUKA NAYARIT.</p>
           </header>
+          {error && <p class="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
 
           <div class="space-y-2">
             <label class="block text-[2rem] font-semibold tracking-tight text-slate-800" for="full_name">Nombre Completo</label>

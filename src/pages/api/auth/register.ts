@@ -11,7 +11,10 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   const password = String(formData.get("password") ?? "");
 
   if (!fullName || !lotNumber || !email || !password) {
-    return new Response("Completa todos los campos.", { status: 400 });
+    return new Response(null, {
+      status: 303,
+      headers: { Location: "/registro?error=Completa todos los campos." }
+    });
   }
 
   const supabase = getSupabaseServerClient();
@@ -29,7 +32,34 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   });
 
   if (error) {
-    return new Response(error.message, { status: 400 });
+    return new Response(null, {
+      status: 303,
+      headers: { Location: `/registro?error=${encodeURIComponent(error.message)}` }
+    });
+  }
+
+  if (!data.user) {
+    return new Response(null, {
+      status: 303,
+      headers: { Location: "/registro?error=No se pudo crear el usuario." }
+    });
+  }
+
+  const { error: profileError } = await supabase.from("profiles").upsert(
+    {
+      id: data.user.id,
+      role: "residente",
+      full_name: fullName,
+      lot_number: lotNumber,
+      complejo_id: "complejo-1"
+    },
+    { onConflict: "id" }
+  );
+  if (profileError) {
+    return new Response(null, {
+      status: 303,
+      headers: { Location: `/registro?error=${encodeURIComponent(profileError.message)}` }
+    });
   }
 
   if (data.session?.access_token) {
@@ -42,8 +72,12 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     });
   }
 
-  return new Response(null, {
-    status: 303,
-    headers: { Location: "/residente/inicio" }
-  });
+  if (!data.session) {
+    return new Response(null, {
+      status: 303,
+      headers: { Location: "/?success=Cuenta creada. Revisa tu correo para confirmar el acceso." }
+    });
+  }
+
+  return new Response(null, { status: 303, headers: { Location: "/residente/inicio" } });
 };
