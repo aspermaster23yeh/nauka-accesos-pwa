@@ -12,6 +12,7 @@ interface Props {
     leftHref?: string;
     rightIcon?: string;
     rightHref?: string;
+    rightButtonId?: string;
   };
   navItems?: BottomNavItem[];
   activeNav?: string;
@@ -29,6 +30,15 @@ const isAuthenticated = Boolean(profile && user);
 const roleLabel = profile?.role === "admin" ? "Administrador" : profile?.role === "guardia" ? "Guardia" : "Residente";
 const userName = profile?.full_name ?? user?.email ?? "Usuario";
 const roleHome = profile?.role === "admin" ? "/admin/dashboard" : profile?.role === "guardia" ? "/guardia/escaner" : "/residente/inicio";
+const resolvedTopBar =
+  topBar && isAuthenticated
+    ? {
+        ...topBar,
+        rightIcon: "menu",
+        rightHref: "#",
+        rightButtonId: "sidebar-open"
+      }
+    : topBar;
 const roleLinks =
   profile?.role === "admin"
     ? [
@@ -63,17 +73,10 @@ const roleLinks =
   </head>
   <body class={`min-h-screen ${bodyClass}`}>
     <div class="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col bg-[#f9f9f9]">
-      {topBar && <TopAppBar {...topBar} />}
+      {resolvedTopBar && <TopAppBar {...resolvedTopBar} />}
       {
         isAuthenticated && (
           <>
-            <button
-              id="sidebar-open"
-              class="fixed right-6 top-4 z-[60] grid h-10 w-10 place-items-center rounded-full bg-white text-[#213138] shadow-[0_8px_20px_rgba(26,28,28,0.2)]"
-              aria-label="Abrir menu"
-            >
-              <span class="material-symbols-outlined">menu</span>
-            </button>
             <div id="sidebar-overlay" class="pointer-events-none fixed inset-0 z-[70] bg-black/35 opacity-0 transition-opacity"></div>
             <aside
               id="sidebar-panel"

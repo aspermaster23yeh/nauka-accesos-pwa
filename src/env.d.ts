@@ -1,6 +1,6 @@
 /// <reference types="astro/client" />
 
-type AppRole = "residente" | "guardia" | "admin";
+type AppRole = "residente" | "c" | "admin";
 
 interface UserProfile {
   id: string;
