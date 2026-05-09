@@ -10,6 +10,17 @@ function sanitizeEmail(raw: FormDataEntryValue | null): string {
     .toLowerCase();
 }
 
+function mapRegisterError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("email rate limit exceeded")) {
+    return "Demasiados intentos de registro. Espera unos minutos o desactiva confirmacion por correo temporalmente en Supabase Auth para pruebas.";
+  }
+  if (normalized.includes("user already registered")) {
+    return "Este correo ya esta registrado. Inicia sesion.";
+  }
+  return message;
+}
+
 export const POST: APIRoute = async ({ request, cookies, url }) => {
   try {
     const formData = await request.formData();
@@ -41,7 +52,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     if (error) {
       return new Response(null, {
         status: 303,
-        headers: { Location: `/auth/resultado?status=error&reason=${encodeURIComponent(error.message)}` }
+        headers: { Location: `/auth/resultado?status=error&reason=${encodeURIComponent(mapRegisterError(error.message))}` }
       });
     }
 
