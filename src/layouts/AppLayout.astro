@@ -19,6 +19,10 @@ interface Props {
 }
 
 const { title, pageTitle, topBar, navItems = [], activeNav, bodyClass = "bg-[#f9f9f9] text-[#1a1c1c]" } = Astro.props;
+const currentPath = Astro.url.pathname;
+const inferredActiveNav =
+  activeNav ??
+  navItems.find((item) => currentPath === item.href || currentPath.startsWith(`${item.href}/`))?.id;
 ---
 
 <!doctype html>
@@ -43,7 +47,7 @@ const { title, pageTitle, topBar, navItems = [], activeNav, bodyClass = "bg-[#f9
         {pageTitle && <h1 class="mb-6 text-[2.6rem] font-extrabold leading-tight tracking-[-0.02em] text-[#213138]">{pageTitle}</h1>}
         <slot />
       </main>
-      {navItems.length > 0 && <BottomNav items={navItems} activeId={activeNav} />}
+      {navItems.length > 0 && <BottomNav items={navItems} activeId={inferredActiveNav} />}
     </div>
   </body>
 </html>

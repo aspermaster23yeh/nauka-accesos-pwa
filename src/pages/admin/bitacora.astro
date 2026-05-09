@@ -1,13 +1,14 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
 import { guardNav } from "../../lib/nav";
+
+export const prerender = true;
 ---
 
 <AppLayout
   title="Bitacora - Nauka Nayarit"
   topBar={{ title: "Nauka Nayarit", leftIcon: "person", leftHref: "#", rightIcon: "notifications", rightHref: "#" }}
   navItems={guardNav}
-  activeNav="bitacora"
   pageTitle="Registro Digital"
 >
   <p class="-mt-5 mb-6 text-sm font-bold uppercase tracking-[0.08em] text-[#7a7e82]">Bitacora de Accesos · Octubre 24, 2023</p>

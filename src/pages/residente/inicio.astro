@@ -1,6 +1,8 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
 import { residentNav } from "../../lib/nav";
+
+export const prerender = true;
 ---
 
 <AppLayout
@@ -8,7 +10,6 @@ import { residentNav } from "../../lib/nav";
   topBar={{ title: "Nauka Nayarit", leftIcon: "location_on", leftHref: "#", rightIcon: "person", rightHref: "#" }}
   pageTitle="Lote A-22"
   navItems={residentNav}
-  activeNav="dashboard"
 >
   <p class="-mt-5 mb-10 text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Panel de Residente</p>
 
