@@ -63,6 +63,23 @@ export const prerender = true;
   let accessType = "entrada";
   let qrState = "valido";
 
+  const normalizeState = (value) => (value === "invalid" ? "invalido" : "valido");
+  const normalizeType = (value) => (value === "salida" ? "salida" : "entrada");
+
+  const readStateFromUrl = () => {
+    const params = new URLSearchParams(window.location.search);
+    qrState = normalizeState(params.get("state"));
+    accessType = normalizeType(params.get("type"));
+  };
+
+  const syncUrlFromState = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("state", qrState === "valido" ? "valid" : "invalid");
+    params.set("type", accessType);
+    const next = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", next);
+  };
+
   const render = () => {
     accessButtons.forEach((button) => {
       const active = button.getAttribute("data-access-type") === accessType;
@@ -100,6 +117,7 @@ export const prerender = true;
       accessAction.className =
         "mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#93000a] to-[#ba1a1a] text-2xl font-semibold text-white";
     }
+    syncUrlFromState();
   };
 
   accessButtons.forEach((button) => {
@@ -116,5 +134,6 @@ export const prerender = true;
     });
   });
 
+  readStateFromUrl();
   render();
 </script>

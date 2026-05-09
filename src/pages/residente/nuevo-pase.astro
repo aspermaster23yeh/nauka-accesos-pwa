@@ -32,6 +32,23 @@ export const prerender = true;
         </select>
       </label>
 
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block space-y-2">
+          <span class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Estado de prueba</span>
+          <select id="test-state" class="h-12 w-full rounded-xl bg-[#f3f3f4] px-3 text-base outline-none focus:ring-2 focus:ring-[#213138]/25">
+            <option value="valid">Valido</option>
+            <option value="invalid">Invalido</option>
+          </select>
+        </label>
+        <label class="block space-y-2">
+          <span class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Tipo de acceso</span>
+          <select id="test-type" class="h-12 w-full rounded-xl bg-[#f3f3f4] px-3 text-base outline-none focus:ring-2 focus:ring-[#213138]/25">
+            <option value="entrada">Entrada</option>
+            <option value="salida">Salida</option>
+          </select>
+        </label>
+      </div>
+
       <button id="generate-pass" type="button" class="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-2xl font-semibold text-white">
         <span class="material-symbols-outlined">qr_code_2</span>
         Generar y Compartir
@@ -43,7 +60,10 @@ export const prerender = true;
         <span class="material-symbols-outlined text-8xl text-[#37474f]">qr_code_2</span>
       </div>
       <p id="generated-label" class="mt-4 text-sm font-bold uppercase tracking-[0.08em] text-[#5f6368]">Codigo temporal generado</p>
-      <button id="share-whatsapp" type="button" class="mt-4 h-14 w-full rounded-xl bg-[#25D366]/15 text-2xl font-semibold text-[#005227]">Compartir por WhatsApp</button>
+      <a id="preview-pass-link" href="/residente/pase-demo" class="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-[#eeeeee] text-base font-semibold text-[#213138]">
+        Ver Pase (Imagen/PDF)
+      </a>
+      <button id="share-whatsapp" type="button" class="mt-3 h-14 w-full rounded-xl bg-[#25D366]/15 text-2xl font-semibold text-[#005227]">Compartir por WhatsApp</button>
     </div>
   </section>
 </AppLayout>
@@ -55,8 +75,12 @@ export const prerender = true;
   const generatedPass = document.getElementById("generated-pass");
   const visitorName = document.getElementById("visitor-name");
   const visitReason = document.getElementById("visit-reason");
+  const testState = document.getElementById("test-state");
+  const testType = document.getElementById("test-type");
+  const previewPassLink = document.getElementById("preview-pass-link");
 
   let currentCode = "";
+  let currentShareUrl = "";
 
   const createCode = () => {
     const seed = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -65,8 +89,14 @@ export const prerender = true;
 
   generateButton?.addEventListener("click", () => {
     currentCode = createCode();
+    const state = testState instanceof HTMLSelectElement ? testState.value : "valid";
+    const type = testType instanceof HTMLSelectElement ? testType.value : "entrada";
+    currentShareUrl = `${window.location.origin}/guardia/escaner?state=${encodeURIComponent(state)}&type=${encodeURIComponent(type)}&code=${encodeURIComponent(currentCode)}`;
     if (generatedLabel) {
       generatedLabel.textContent = `Codigo temporal generado: ${currentCode}`;
+    }
+    if (previewPassLink instanceof HTMLAnchorElement) {
+      previewPassLink.href = `/residente/pase-demo?code=${encodeURIComponent(currentCode)}&state=${encodeURIComponent(state)}&type=${encodeURIComponent(type)}`;
     }
     if (generatedPass) {
       generatedPass.classList.add("ring-2", "ring-[#213138]/15");
@@ -77,7 +107,10 @@ export const prerender = true;
     const name = visitorName instanceof HTMLInputElement ? visitorName.value || "Visitante" : "Visitante";
     const reason = visitReason instanceof HTMLSelectElement ? visitReason.value || "Visita" : "Visita";
     const code = currentCode || createCode();
-    const text = `Pase Nauka Nayarit%0AVisitante: ${encodeURIComponent(name)}%0AMotivo: ${encodeURIComponent(reason)}%0ACodigo QR: ${encodeURIComponent(code)}`;
+    const state = testState instanceof HTMLSelectElement ? testState.value : "valid";
+    const type = testType instanceof HTMLSelectElement ? testType.value : "entrada";
+    const url = currentShareUrl || `${window.location.origin}/guardia/escaner?state=${encodeURIComponent(state)}&type=${encodeURIComponent(type)}&code=${encodeURIComponent(code)}`;
+    const text = `Pase Nauka Nayarit%0AVisitante: ${encodeURIComponent(name)}%0AMotivo: ${encodeURIComponent(reason)}%0ACodigo: ${encodeURIComponent(code)}%0AValidar en caseta: ${encodeURIComponent(url)}`;
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   });
 </script>
