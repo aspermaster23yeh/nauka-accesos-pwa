@@ -11,8 +11,11 @@ export interface UserProfile {
   complejo_id: string | null;
 }
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? import.meta.env.SUPABASE_URL;
+const supabaseAnonKey =
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY ??
+  import.meta.env.SUPABASE_PUBLISHABLE_KEY ??
+  import.meta.env.SUPABASE_KEY;
 
 function assertEnv(name: string, value: string | undefined): string {
   if (!value) {

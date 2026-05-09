@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = "https://YOUR_PROJECT.supabase.co";
-const supabaseAnonKey = "YOUR_PUBLIC_ANON_KEY";
+const supabaseUrl = "https://zglxnozjkktsufitjtvy.supabase.co";
+const supabaseAnonKey = "sb_publishable_uU6Romn_9P4tEM6qsxHHow_Bl_SJ_jf";
 function assertEnv(name, value) {
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);

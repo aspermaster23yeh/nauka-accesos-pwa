@@ -1,7 +1,7 @@
-import { d as defineMiddleware, s as sequence } from './chunks/index_DYMyg47W.mjs';
-import { g as getUserFromAccessToken, a as getProfileForUser } from './chunks/supabase_CmfbSpzm.mjs';
+import { d as defineMiddleware, s as sequence } from './chunks/index_D0NsaHru.mjs';
+import { g as getUserFromAccessToken, a as getProfileForUser } from './chunks/supabase_DBfBwpCC.mjs';
 import 'es-module-lexer';
-import './chunks/astro-designed-error-pages_PaAhNGM6.mjs';
+import './chunks/astro-designed-error-pages_D1YOGrb_.mjs';
 import 'piccolore';
 import './chunks/astro/server_C6rdUW15.mjs';
 import 'clsx';

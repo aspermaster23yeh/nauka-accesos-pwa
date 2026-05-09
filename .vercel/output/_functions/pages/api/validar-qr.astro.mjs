@@ -1,4 +1,4 @@
-import { v as validateAccessQr } from '../../chunks/access_D2-p0EuY.mjs';
+import { v as validateAccessQr } from '../../chunks/access_B3PXjcY6.mjs';
 export { renderers } from '../../renderers.mjs';
 
 const prerender = false;

@@ -2,7 +2,7 @@
 import { e as createAstro, f as createComponent, k as renderComponent, r as renderTemplate, m as maybeRenderHead, h as addAttribute } from '../../chunks/astro/server_C6rdUW15.mjs';
 import 'piccolore';
 import { $ as $$AppLayout } from '../../chunks/AppLayout_BoRoxKkH.mjs';
-import { b as getSupabaseServerClient } from '../../chunks/supabase_CmfbSpzm.mjs';
+import { b as getSupabaseServerClient } from '../../chunks/supabase_DBfBwpCC.mjs';
 export { renderers } from '../../renderers.mjs';
 
 const $$Astro = createAstro("https://naukanayarit.local");

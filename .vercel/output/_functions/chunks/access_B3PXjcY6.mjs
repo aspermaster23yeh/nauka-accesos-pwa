@@ -1,4 +1,4 @@
-import { b as getSupabaseServerClient } from './supabase_CmfbSpzm.mjs';
+import { b as getSupabaseServerClient } from './supabase_DBfBwpCC.mjs';
 
 async function validateAccessQr(token, complejoId, guardiaId) {
   const supabase = getSupabaseServerClient();

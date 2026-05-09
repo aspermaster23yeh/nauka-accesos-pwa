@@ -6,7 +6,7 @@ const ACTION_QUERY_PARAMS$1 = {
   actionName: "_action"};
 const ACTION_RPC_ROUTE_PATTERN = "/_actions/[...path]";
 
-const __vite_import_meta_env__ = {"ASSETS_PREFIX": undefined, "BASE_URL": "/", "DEV": false, "MODE": "production", "PROD": true, "PUBLIC_SUPABASE_ANON_KEY": "YOUR_PUBLIC_ANON_KEY", "PUBLIC_SUPABASE_URL": "https://YOUR_PROJECT.supabase.co", "SITE": "https://naukanayarit.local", "SSR": true};
+const __vite_import_meta_env__ = {"ASSETS_PREFIX": undefined, "BASE_URL": "/", "DEV": false, "MODE": "production", "PROD": true, "PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_uU6Romn_9P4tEM6qsxHHow_Bl_SJ_jf", "PUBLIC_SUPABASE_URL": "https://zglxnozjkktsufitjtvy.supabase.co", "SITE": "https://naukanayarit.local", "SSR": true};
 const ACTION_QUERY_PARAMS = ACTION_QUERY_PARAMS$1;
 const codeToStatusMap = {
   // Implemented from IANA HTTP Status Code Registry
