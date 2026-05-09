@@ -11,7 +11,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (!email || !password) {
     return new Response(null, {
       status: 303,
-      headers: { Location: "/?error=Email y contraseña son obligatorios." }
+      headers: { Location: "/auth/resultado?status=error&reason=Email%20y%20contrasena%20son%20obligatorios" }
     });
   }
 
@@ -20,7 +20,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (error || !data.session || !data.user) {
     return new Response(null, {
       status: 303,
-      headers: { Location: `/?error=${encodeURIComponent(error?.message ?? "No se pudo iniciar sesión.")}` }
+      headers: {
+        Location: `/auth/resultado?status=error&reason=${encodeURIComponent(error?.message ?? "No se pudo iniciar sesion.")}`
+      }
     });
   }
 
@@ -51,7 +53,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (upsertError) {
       return new Response(null, {
         status: 303,
-        headers: { Location: `/?error=${encodeURIComponent(upsertError.message)}` }
+        headers: { Location: `/auth/resultado?status=error&reason=${encodeURIComponent(upsertError.message)}` }
       });
     }
     profile = { role: roleFromMeta, id: data.user.id };
@@ -59,11 +61,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const target =
     profile.role === "admin" ? "/admin/dashboard" : profile.role === "guardia" ? "/guardia/escaner" : "/residente/inicio";
+  const roleTitle =
+    profile.role === "admin"
+      ? "Panel de Administracion listo"
+      : profile.role === "guardia"
+        ? "Acceso de Guardia habilitado"
+        : "Bienvenido Residente";
 
   return new Response(null, {
     status: 303,
     headers: {
-      Location: target
+      Location: `/auth/resultado?status=success&title=${encodeURIComponent(roleTitle)}&message=Inicio%20de%20sesion%20correcto&next=${encodeURIComponent(target)}`
     }
   });
 };
