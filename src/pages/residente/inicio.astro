@@ -2,15 +2,15 @@
 import AppLayout from "../../layouts/AppLayout.astro";
 import { residentNav } from "../../lib/nav";
 import { getActivePassesForResident } from "../../lib/access";
-const ctx = {
-  accessToken: Astro.locals.accessToken as string,
-  userId: Astro.locals.user!.id,
-  role: "residente" as const,
-  complejoId: Astro.locals.profile?.complejo_id ?? "complejo-1",
-  lotNumber: Astro.locals.profile?.lot_number
-};
-
-const activePasses = await getActivePassesForResident(ctx);
+const activePasses = Astro.locals.user && Astro.locals.accessToken
+  ? await getActivePassesForResident({
+      accessToken: Astro.locals.accessToken,
+      userId: Astro.locals.user.id,
+      role: "residente",
+      complejoId: Astro.locals.profile?.complejo_id ?? "complejo-1",
+      lotNumber: Astro.locals.profile?.lot_number
+    }).catch(() => [])
+  : [];
 const lotTitle = Astro.locals.profile?.lot_number ?? "A-22";
 ---
 
