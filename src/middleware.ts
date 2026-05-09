@@ -39,7 +39,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const accessToken = context.cookies.get("sb-access-token")?.value;
   const publicPath = isPublicPath(pathname);
   const requiredRole = pathname.startsWith("/api") ? getRequiredRole(pathname.replace("/api", "")) : getRequiredRole(pathname);
-  const shouldResolveAuth = Boolean(accessToken && (!publicPath || pathname === "/" || pathname === "/registro"));
+  const shouldResolveAuth = Boolean(accessToken && !publicPath);
 
   let user = null;
   let profile: UserProfile | null = null;
@@ -48,8 +48,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
       user = await withTimeout(getUserFromAccessToken(accessToken), 1200);
       if (user) {
         profile = await withTimeout(getProfileForUser(user.id, accessToken), 1200);
-      } else if (publicPath) {
-        context.cookies.delete("sb-access-token", { path: "/" });
       }
     }
   } catch {
@@ -71,9 +69,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (publicPath) {
-      if (user && profile && (pathname === "/" || pathname === "/registro")) {
-        return context.redirect(roleHome(profile.role));
-      }
       return next();
     }
 
