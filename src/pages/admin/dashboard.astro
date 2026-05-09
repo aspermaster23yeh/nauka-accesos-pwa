@@ -9,21 +9,45 @@ const profile = Astro.locals.profile;
 const user = Astro.locals.user;
 const complejoId = profile?.complejo_id ?? "complejo-1";
 
-const metrics = await getAdminMetrics({
-  accessToken,
-  userId: user!.id,
-  role: "admin",
-  complejoId,
-  lotNumber: profile?.lot_number
-});
+const defaultMetrics = {
+  totalMovimientos: 0,
+  totalAutorizados: 0,
+  totalRechazados: 0,
+  incidentesAbiertos: 0
+};
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), ms);
+  });
+  const result = await Promise.race([promise, timeoutPromise]);
+  if (timeoutId) clearTimeout(timeoutId);
+  return result;
+}
+
+const metrics = await withTimeout(
+  getAdminMetrics({
+    accessToken,
+    userId: user!.id,
+    role: "admin",
+    complejoId,
+    lotNumber: profile?.lot_number
+  }),
+  1200,
+  defaultMetrics
+);
 
 const supabase = getSupabaseServerClient(accessToken);
-const { data: incidentes } = await supabase
+const incidentesQuery = supabase
   .from("incidentes")
   .select("id, created_at, estado, descripcion, severidad, visitante_nombre")
   .eq("complejo_id", complejoId)
   .order("created_at", { ascending: false })
   .limit(20);
+const { data: incidentes } = await withTimeout(incidentesQuery, 1200, { data: [] as any[] }).then((result) =>
+  "data" in result ? result : { data: [] as any[] }
+);
 ---
 
 <AppLayout

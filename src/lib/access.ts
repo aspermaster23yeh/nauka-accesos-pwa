@@ -219,20 +219,20 @@ export async function getAdminMetrics(ctx: AuthContext) {
 
   const [{ count: totalMovimientos }, { count: totalAutorizados }, { count: totalRechazados }, { count: incidentesAbiertos }] =
     await Promise.all([
-      supabase.from("bitacora_accesos").select("*", { count: "exact", head: true }).eq("complejo_id", ctx.complejoId).gte("created_at", startDay.toISOString()),
+      supabase.from("bitacora_accesos").select("id", { count: "planned", head: true }).eq("complejo_id", ctx.complejoId).gte("created_at", startDay.toISOString()),
       supabase
         .from("bitacora_accesos")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "planned", head: true })
         .eq("complejo_id", ctx.complejoId)
         .eq("resultado", "autorizado")
         .gte("created_at", startDay.toISOString()),
       supabase
         .from("bitacora_accesos")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "planned", head: true })
         .eq("complejo_id", ctx.complejoId)
         .eq("resultado", "rechazado")
         .gte("created_at", startDay.toISOString()),
-      supabase.from("incidentes").select("*", { count: "exact", head: true }).eq("complejo_id", ctx.complejoId).neq("estado", "cerrado")
+      supabase.from("incidentes").select("id", { count: "planned", head: true }).eq("complejo_id", ctx.complejoId).neq("estado", "cerrado")
     ]);
 
   return {
