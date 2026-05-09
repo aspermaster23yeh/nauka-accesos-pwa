@@ -50,11 +50,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (!profile) {
       const adminSupabase = getSupabaseServiceClient();
-      const roleFromMeta =
-        data.user.user_metadata?.role === "guardia" || data.user.user_metadata?.role === "admin" ? data.user.user_metadata.role : "residente";
       const upsertPayload = {
         id: data.user.id,
-        role: roleFromMeta,
+        role: "residente" as const,
         full_name: data.user.user_metadata?.full_name ?? null,
         lot_number: data.user.user_metadata?.lot_number ?? null,
         complejo_id: data.user.user_metadata?.complejo_id ?? "complejo-1"
@@ -66,7 +64,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           headers: { Location: `/auth/resultado?status=error&reason=${encodeURIComponent(upsertError.message)}` }
         });
       }
-      profile = { role: roleFromMeta, id: data.user.id };
+      profile = { role: "residente", id: data.user.id };
     }
 
     const target =
