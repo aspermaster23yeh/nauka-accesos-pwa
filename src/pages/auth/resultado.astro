@@ -7,6 +7,7 @@ const isSuccess = statusParam === "success";
 const title = Astro.url.searchParams.get("title") ?? (isSuccess ? "Acceso registrado" : "Acceso no registrado");
 const message = Astro.url.searchParams.get("message") ?? Astro.url.searchParams.get("reason") ?? "No se pudo completar la operación.";
 const next = Astro.url.searchParams.get("next") ?? (isSuccess ? "/" : "/registro");
+const shouldAutoRedirect = isSuccess && Boolean(Astro.url.searchParams.get("next"));
 ---
 
 <AppLayout title="Resultado de Registro - Nauka Nayarit" bodyClass="bg-[#0f1f2a] text-[#1a1c1c]">
@@ -26,6 +27,7 @@ const next = Astro.url.searchParams.get("next") ?? (isSuccess ? "/" : "/registro
       </div>
       <h1 class={`text-5xl font-extrabold uppercase tracking-tight ${isSuccess ? "text-[#006d36]" : "text-[#ba1a1a]"}`}>{title}</h1>
       <p class="mt-3 text-base font-semibold text-[#5f6368]">{message}</p>
+      {shouldAutoRedirect && <p class="mt-2 text-sm font-medium text-[#5f6368]">Redirigiendo automaticamente...</p>}
       <div class="mt-6 space-y-3">
         <a
           href={next}
@@ -39,4 +41,13 @@ const next = Astro.url.searchParams.get("next") ?? (isSuccess ? "/" : "/registro
       </div>
     </section>
   </div>
+  {
+    shouldAutoRedirect && (
+      <script is:inline>
+        {`setTimeout(() => {
+          window.location.href = ${JSON.stringify(next)};
+        }, 900);`}
+      </script>
+    )
+  }
 </AppLayout>
