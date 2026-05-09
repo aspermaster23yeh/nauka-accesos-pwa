@@ -39,14 +39,18 @@ const metrics = await withTimeout(
 );
 
 const supabase = getSupabaseServerClient(accessToken);
-const incidentesQuery = supabase
-  .from("incidentes")
-  .select("id, created_at, estado, descripcion, severidad, visitante_nombre")
-  .eq("complejo_id", complejoId)
-  .order("created_at", { ascending: false })
-  .limit(20);
-const { data: incidentes } = await withTimeout(incidentesQuery, 1200, { data: [] as any[] }).then((result) =>
-  "data" in result ? result : { data: [] as any[] }
+const incidentes = await withTimeout(
+  (async () => {
+    const { data } = await supabase
+      .from("incidentes")
+      .select("id, created_at, estado, descripcion, severidad, visitante_nombre")
+      .eq("complejo_id", complejoId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    return data ?? [];
+  })(),
+  1200,
+  [] as any[]
 );
 ---
 
