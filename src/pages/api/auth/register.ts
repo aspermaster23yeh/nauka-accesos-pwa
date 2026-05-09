@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getSupabaseServerClient } from "../../../lib/supabase";
+import { getSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase";
 
 export const prerender = false;
 
@@ -63,7 +63,8 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
       });
     }
 
-    const { error: profileError } = await supabase.from("profiles").upsert(
+    const adminSupabase = getSupabaseServiceClient();
+    const { error: profileError } = await adminSupabase.from("profiles").upsert(
       {
         id: data.user.id,
         role: "residente",

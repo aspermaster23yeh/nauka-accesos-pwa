@@ -12,12 +12,13 @@ export interface UserProfile {
 }
 
 function readEnv(...keys: string[]): string | undefined {
+  const runtimeProcess = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
   for (const key of keys) {
     const fromImportMeta = (import.meta.env as Record<string, string | undefined>)[key];
     if (fromImportMeta) return fromImportMeta;
 
-    if (typeof process !== "undefined") {
-      const fromProcess = process.env[key];
+    if (runtimeProcess?.env) {
+      const fromProcess = runtimeProcess.env[key];
       if (fromProcess) return fromProcess;
     }
   }
@@ -35,6 +36,12 @@ function resolveSupabaseConfig(): { url?: string; anonKey?: string } {
   const url = readEnv("PUBLIC_SUPABASE_URL", "SUPABASE_URL");
   const anonKey = readEnv("PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_KEY");
   return { url, anonKey };
+}
+
+function resolveSupabaseServiceConfig(): { url?: string; serviceRoleKey?: string } {
+  const url = readEnv("SUPABASE_URL", "PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = readEnv("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY");
+  return { url, serviceRoleKey };
 }
 
 function hasSupabaseConfig(): boolean {
@@ -68,6 +75,20 @@ export function getSupabaseBrowserClient(): SupabaseClient<any, PublicSchema, an
     throw new Error("Supabase environment variables are not configured.");
   }
   return createClient(assertEnv("PUBLIC_SUPABASE_URL", url), assertEnv("PUBLIC_SUPABASE_ANON_KEY", anonKey));
+}
+
+export function getSupabaseServiceClient(): SupabaseClient<any, PublicSchema, any> {
+  const { url, serviceRoleKey } = resolveSupabaseServiceConfig();
+  if (!url || !serviceRoleKey) {
+    throw new Error("Supabase service role environment variables are not configured.");
+  }
+
+  return createClient(assertEnv("SUPABASE_URL", url), assertEnv("SUPABASE_SERVICE_ROLE_KEY", serviceRoleKey), {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  });
 }
 
 export async function getUserFromAccessToken(accessToken?: string): Promise<User | null> {

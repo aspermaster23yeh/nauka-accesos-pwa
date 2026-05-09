@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getSupabaseServerClient } from "../../../lib/supabase";
+import { getSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase";
 
 export const prerender = false;
 
@@ -49,6 +49,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .maybeSingle();
 
     if (!profile) {
+      const adminSupabase = getSupabaseServiceClient();
       const roleFromMeta =
         data.user.user_metadata?.role === "guardia" || data.user.user_metadata?.role === "admin" ? data.user.user_metadata.role : "residente";
       const upsertPayload = {
@@ -58,7 +59,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         lot_number: data.user.user_metadata?.lot_number ?? null,
         complejo_id: data.user.user_metadata?.complejo_id ?? "complejo-1"
       };
-      const { error: upsertError } = await supabase.from("profiles").upsert(upsertPayload, { onConflict: "id" });
+      const { error: upsertError } = await adminSupabase.from("profiles").upsert(upsertPayload, { onConflict: "id" });
       if (upsertError) {
         return new Response(null, {
           status: 303,
