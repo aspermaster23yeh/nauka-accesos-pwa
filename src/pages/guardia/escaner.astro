@@ -11,6 +11,17 @@ export const prerender = true;
   topBar={{ title: "Nauka Nayarit", leftIcon: "person", leftHref: "#", rightIcon: "notifications", rightHref: "#" }}
   navItems={guardNav}
 >
+  <section class="mb-4 rounded-xl bg-white p-2 shadow-[0_6px_18px_rgba(26,28,28,0.05)]">
+    <div class="grid grid-cols-2 gap-2">
+      <button data-access-type="entrada" class="access-toggle h-11 rounded-lg bg-[#213138] text-base font-semibold text-white">Entrada</button>
+      <button data-access-type="salida" class="access-toggle h-11 rounded-lg bg-[#eeeeee] text-base font-semibold text-[#213138]">Salida</button>
+    </div>
+    <div class="mt-2 grid grid-cols-2 gap-2">
+      <button data-qr-state="valido" class="qr-toggle h-11 rounded-lg bg-[#006d36] text-base font-semibold text-white">QR Valido</button>
+      <button data-qr-state="invalido" class="qr-toggle h-11 rounded-lg bg-[#eeeeee] text-base font-semibold text-[#93000a]">QR Invalido</button>
+    </div>
+  </section>
+
   <section class="relative -mx-4 -mt-6 mb-6 h-[45vh] overflow-hidden bg-[#2f3131]">
     <img src={loginBackground.src} alt="camera bg" class="h-full w-full object-cover blur-sm brightness-75" />
     <div class="absolute inset-0 grid place-items-center">
@@ -24,19 +35,86 @@ export const prerender = true;
     </div>
   </section>
 
-  <section class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
-    <div class="mb-5 flex items-center gap-2 rounded-xl bg-[#83fba5]/20 p-3 text-[#006d36]">
+  <section id="access-card" class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
+    <div id="status-chip" class="mb-5 flex items-center gap-2 rounded-xl bg-[#83fba5]/20 p-3 text-[#006d36]">
       <span class="material-symbols-outlined">check_circle</span>
-      <h2 class="text-5xl font-bold tracking-[-0.01em]">Visitante Autorizado</h2>
+      <h2 id="status-title" class="text-5xl font-bold tracking-[-0.01em]">Visitante Autorizado</h2>
     </div>
     <p class="text-sm font-bold uppercase tracking-[0.08em] text-[#5f6368]">Nombre</p>
     <p class="mt-1 text-5xl font-semibold text-[#213138]">Juan Perez</p>
     <hr class="my-4 border-[#eeeeee]" />
     <p class="text-sm font-bold uppercase tracking-[0.08em] text-[#5f6368]">Destino</p>
     <p class="mt-1 text-6xl font-extrabold tracking-[-0.02em] text-[#213138]">Lote A-22</p>
-    <a href="/admin/detalle-movimiento" class="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#006d36] to-[#005227] text-2xl font-semibold text-white">
+    <a id="access-action" href="/admin/detalle-movimiento" class="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#006d36] to-[#005227] text-2xl font-semibold text-white">
       <span class="material-symbols-outlined">login</span>
-      Registrar entrada
+      <span id="action-label">Registrar entrada</span>
     </a>
   </section>
 </AppLayout>
+
+<script is:inline>
+  const accessButtons = Array.from(document.querySelectorAll(".access-toggle"));
+  const qrButtons = Array.from(document.querySelectorAll(".qr-toggle"));
+  const actionLabel = document.getElementById("action-label");
+  const statusTitle = document.getElementById("status-title");
+  const statusChip = document.getElementById("status-chip");
+  const accessAction = document.getElementById("access-action");
+
+  let accessType = "entrada";
+  let qrState = "valido";
+
+  const render = () => {
+    accessButtons.forEach((button) => {
+      const active = button.getAttribute("data-access-type") === accessType;
+      button.className = `access-toggle h-11 rounded-lg text-base font-semibold ${
+        active ? "bg-[#213138] text-white" : "bg-[#eeeeee] text-[#213138]"
+      }`;
+    });
+
+    qrButtons.forEach((button) => {
+      const active = button.getAttribute("data-qr-state") === qrState;
+      const validPalette = active && qrState === "valido";
+      const invalidPalette = active && qrState === "invalido";
+      button.className = `qr-toggle h-11 rounded-lg text-base font-semibold ${
+        validPalette
+          ? "bg-[#006d36] text-white"
+          : invalidPalette
+            ? "bg-[#93000a] text-white"
+            : "bg-[#eeeeee] text-[#5f6368]"
+      }`;
+    });
+
+    if (!actionLabel || !statusTitle || !statusChip || !accessAction) return;
+
+    actionLabel.textContent = accessType === "entrada" ? "Registrar entrada" : "Registrar salida";
+    if (qrState === "valido") {
+      statusTitle.textContent = "Visitante Autorizado";
+      statusChip.className = "mb-5 flex items-center gap-2 rounded-xl bg-[#83fba5]/20 p-3 text-[#006d36]";
+      accessAction.setAttribute("href", "/admin/detalle-movimiento");
+      accessAction.className =
+        "mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#006d36] to-[#005227] text-2xl font-semibold text-white";
+    } else {
+      statusTitle.textContent = "Acceso no autorizado";
+      statusChip.className = "mb-5 flex items-center gap-2 rounded-xl bg-[#ffdad6] p-3 text-[#93000a]";
+      accessAction.setAttribute("href", "/guardia/acceso-denegado");
+      accessAction.className =
+        "mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#93000a] to-[#ba1a1a] text-2xl font-semibold text-white";
+    }
+  };
+
+  accessButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      accessType = button.getAttribute("data-access-type") ?? "entrada";
+      render();
+    });
+  });
+
+  qrButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      qrState = button.getAttribute("data-qr-state") ?? "valido";
+      render();
+    });
+  });
+
+  render();
+</script>

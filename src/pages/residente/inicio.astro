@@ -23,8 +23,12 @@ export const prerender = true;
 
   <section class="space-y-4">
     <h2 class="text-5xl font-bold tracking-[-0.02em] text-[#213138]">Pases Activos</h2>
+    <div class="grid grid-cols-2 gap-2 rounded-xl bg-[#eeeeee] p-1">
+      <button data-pass-filter="todos" class="pass-filter h-10 rounded-lg bg-[#213138] text-sm font-semibold uppercase tracking-[0.08em] text-white">Todos</button>
+      <button data-pass-filter="visita" class="pass-filter h-10 rounded-lg bg-transparent text-sm font-semibold uppercase tracking-[0.08em] text-[#213138]">Solo Visitas</button>
+    </div>
 
-    <article class="relative rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
+    <article data-pass-type="visita" class="relative rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
       <span class="absolute left-0 top-0 h-full w-1 rounded-l-[14px] bg-[#0a8d4f]"></span>
       <div class="flex items-start gap-4 pl-1">
         <div class="grid h-12 w-12 place-items-center rounded-full bg-[#83fba5]/25 text-[#006d36]">
@@ -43,7 +47,7 @@ export const prerender = true;
       </div>
     </article>
 
-    <article class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
+    <article data-pass-type="proveedor" class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
       <div class="flex items-start gap-4">
         <div class="grid h-12 w-12 place-items-center rounded-full bg-[#eeeeee] text-[#5f6368]">
           <span class="material-symbols-outlined">local_shipping</span>
@@ -62,3 +66,33 @@ export const prerender = true;
     </article>
   </section>
 </AppLayout>
+
+<script is:inline>
+  const filterButtons = Array.from(document.querySelectorAll(".pass-filter"));
+  const passCards = Array.from(document.querySelectorAll("[data-pass-type]"));
+  let activeFilter = "todos";
+
+  const renderFilter = () => {
+    filterButtons.forEach((button) => {
+      const selected = button.getAttribute("data-pass-filter") === activeFilter;
+      button.className = `pass-filter h-10 rounded-lg text-sm font-semibold uppercase tracking-[0.08em] ${
+        selected ? "bg-[#213138] text-white" : "bg-transparent text-[#213138]"
+      }`;
+    });
+
+    passCards.forEach((card) => {
+      const type = card.getAttribute("data-pass-type");
+      const visible = activeFilter === "todos" || activeFilter === type;
+      card.classList.toggle("hidden", !visible);
+    });
+  };
+
+  filterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      activeFilter = button.getAttribute("data-pass-filter") ?? "todos";
+      renderFilter();
+    });
+  });
+
+  renderFilter();
+</script>
