@@ -10,8 +10,8 @@
     "check": "astro check"
   },
   "dependencies": {
-    "@astrojs/node": "^9.0.1",
     "@astrojs/tailwind": "^5.1.0",
+    "@astrojs/vercel": "^9.0.5",
     "@supabase/supabase-js": "^2.49.8",
     "@zxing/browser": "^0.1.5",
     "astro": "^5.7.1",

@@ -1,0 +1,103 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import { createVisitorPass } from "../../lib/access";
+
+const complejoId = Astro.url.searchParams.get("complejo_id") ?? "complejo-1";
+let qrToken = "";
+let shareText = "";
+let errorMessage = "";
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const visitanteNombre = String(formData.get("visitante_nombre") ?? "");
+  const anfitrionNombre = String(formData.get("anfitrion_nombre") ?? "");
+  const venceEn = String(formData.get("vence_en") ?? "");
+  const telefonoDestino = String(formData.get("telefono_destino") ?? "");
+  const complejo = String(formData.get("complejo_id") ?? complejoId);
+
+  try {
+    qrToken = await createVisitorPass({
+      complejoId: complejo,
+      visitanteNombre,
+      anfitrionNombre,
+      venceEn,
+      telefonoDestino
+    });
+    const passUrl = `${Astro.url.origin}/guardia/escaner?complejo_id=${encodeURIComponent(complejo)}&token=${encodeURIComponent(qrToken)}`;
+    shareText = `Pase de acceso Nauka Nayarit\nVisitante: ${visitanteNombre}\nQR: ${passUrl}`;
+  } catch (error) {
+    errorMessage = error instanceof Error ? error.message : "No se pudo crear el pase.";
+  }
+}
+---
+
+<MainLayout title="Nuevo pase de visitante">
+  <section class="lens-section rounded-2xl p-5">
+    <form method="POST" class="grid gap-3">
+      <input type="hidden" name="complejo_id" value={complejoId} />
+      <label class="flex flex-col gap-1 text-sm font-semibold">
+        Nombre del visitante
+        <input required name="visitante_nombre" class="rounded-xl bg-white px-3 py-3 text-base font-medium" />
+      </label>
+      <label class="flex flex-col gap-1 text-sm font-semibold">
+        Nombre del residente/anfitrión
+        <input required name="anfitrion_nombre" class="rounded-xl bg-white px-3 py-3 text-base font-medium" />
+      </label>
+      <label class="flex flex-col gap-1 text-sm font-semibold">
+        Vence en
+        <input required type="datetime-local" name="vence_en" class="rounded-xl bg-white px-3 py-3 text-base font-medium" />
+      </label>
+      <label class="flex flex-col gap-1 text-sm font-semibold">
+        Teléfono de WhatsApp
+        <input required name="telefono_destino" class="rounded-xl bg-white px-3 py-3 text-base font-medium" />
+      </label>
+      <button class="rounded-xl bg-slate-900 px-4 py-3 text-base font-bold text-white">Generar pase</button>
+    </form>
+  </section>
+
+  {errorMessage && (
+    <section class="mt-4 rounded-2xl bg-red-100 px-4 py-4 text-red-900">
+      <p class="text-base font-bold">{errorMessage}</p>
+    </section>
+  )}
+
+  {qrToken && (
+    <section class="mt-5 lens-section-muted rounded-2xl p-5">
+      <p class="text-sm font-semibold uppercase tracking-wide sunlight-subtext">Token QR generado</p>
+      <p class="mt-2 break-all text-xl font-extrabold">{qrToken}</p>
+      <button
+        id="share-whatsapp"
+        type="button"
+        data-share-text={shareText}
+        class="mt-4 rounded-xl bg-emerald-700 px-4 py-3 text-base font-bold text-white"
+      >
+        Compartir por WhatsApp
+      </button>
+    </section>
+  )}
+</MainLayout>
+
+<script is:inline>
+  const shareButton = document.getElementById("share-whatsapp");
+  if (shareButton) {
+    shareButton.addEventListener("click", async () => {
+      const text = shareButton.getAttribute("data-share-text") ?? "";
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      if (navigator.share && isMobile) {
+        try {
+          await navigator.share({
+            title: "Pase Nauka Nayarit",
+            text
+          });
+          return;
+        } catch {
+          // Continue to fallback when user cancels or platform fails.
+        }
+      }
+
+      const encoded = encodeURIComponent(text);
+      window.open(`https://wa.me/?text=${encoded}`, "_blank", "noopener,noreferrer");
+    });
+  }
+</script>
