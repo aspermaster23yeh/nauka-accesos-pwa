@@ -1,0 +1,17 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import ScannerIsland from "../../components/ScannerIsland.astro";
+
+const complejoId = Astro.url.searchParams.get("complejo_id") ?? "complejo-1";
+---
+
+<MainLayout title="Escáner de accesos">
+  <section class="lens-section rounded-2xl p-5">
+    <p class="text-lg font-semibold">
+      Mantén brillo alto en pantalla y alinea el QR al centro. El contraste está optimizado para lectura bajo sol.
+    </p>
+  </section>
+  <section class="mt-4">
+    <ScannerIsland complejoId={complejoId} />
+  </section>
+</MainLayout>

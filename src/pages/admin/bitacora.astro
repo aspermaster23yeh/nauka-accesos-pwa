@@ -1,0 +1,50 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import { getBitacoraByComplejo } from "../../lib/access";
+
+const complejoId = Astro.url.searchParams.get("complejo_id") ?? "complejo-1";
+const search = Astro.url.searchParams.get("q") ?? "";
+const registros = await getBitacoraByComplejo(complejoId, search);
+---
+
+<MainLayout title="Bitácora de accesos">
+  <section class="lens-section rounded-2xl p-5">
+    <form class="grid gap-3 sm:grid-cols-3">
+      <label class="flex flex-col gap-1 text-sm font-semibold">
+        Complejo
+        <select name="complejo_id" class="rounded-xl bg-white px-3 py-3 text-base font-medium">
+          <option value="complejo-1" selected={complejoId === "complejo-1"}>Complejo 1</option>
+          <option value="complejo-2" selected={complejoId === "complejo-2"}>Complejo 2</option>
+          <option value="complejo-3" selected={complejoId === "complejo-3"}>Complejo 3</option>
+        </select>
+      </label>
+      <label class="flex flex-col gap-1 text-sm font-semibold sm:col-span-2">
+        Buscar por visitante o resultado
+        <input
+          type="search"
+          name="q"
+          value={search}
+          class="rounded-xl bg-white px-3 py-3 text-base font-medium"
+          placeholder="Ej. Autorizado"
+        />
+      </label>
+      <button class="w-full rounded-xl bg-slate-900 px-4 py-3 text-base font-bold text-white sm:w-auto">
+        Aplicar filtros
+      </button>
+    </form>
+  </section>
+
+  <section class="mt-5 lens-section-muted rounded-2xl p-4">
+    <ul class="space-y-3">
+      {registros.map((row) => (
+        <li class="rounded-2xl bg-white px-4 py-4">
+          <p class="text-lg font-bold">{row.visitante_nombre}</p>
+          <p class="text-sm font-semibold sunlight-subtext">
+            {new Date(row.created_at).toLocaleString("es-MX")} - {row.origen}
+          </p>
+          <p class="mt-1 text-base font-bold">{row.resultado}</p>
+        </li>
+      ))}
+    </ul>
+  </section>
+</MainLayout>

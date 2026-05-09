@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #ffffff;
+  --surface: #f6f8fb;
+  --surface-2: #eef2f7;
+  --text: #0f172a;
+  --muted: #334155;
+  --success: #166534;
+  --danger: #b91c1c;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.lens-section {
+  background: var(--surface);
+}
+
+.lens-section-muted {
+  background: var(--surface-2);
+}
+
+.sunlight-text {
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.sunlight-subtext {
+  color: var(--muted);
+}
