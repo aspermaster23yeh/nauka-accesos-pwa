@@ -1,21 +1,21 @@
 import type { APIRoute } from "astro";
-import { createVisitorPass, getActivePassesForResident } from "../../../lib/access";
+import { createVisitorPass, getActivePassesForSolicitante } from "../../../lib/access";
 
 export const prerender = false;
 
-function requireResident(locals: App.Locals) {
-  if (!locals.user || !locals.profile || locals.profile.role !== "residente" || !locals.accessToken) {
+function requireSolicitante(locals: App.Locals) {
+  if (!locals.user || !locals.profile || locals.profile.role !== "solicitante" || !locals.accessToken) {
     throw new Error("UNAUTHORIZED");
   }
 }
 
 export const GET: APIRoute = async ({ locals }) => {
   try {
-    requireResident(locals);
-    const passes = await getActivePassesForResident({
+    requireSolicitante(locals);
+    const passes = await getActivePassesForSolicitante({
       accessToken: locals.accessToken as string,
       userId: locals.user!.id,
-      role: "residente",
+      role: "solicitante",
       complejoId: locals.profile!.complejo_id ?? "complejo-1",
       lotNumber: locals.profile!.lot_number
     });
@@ -31,7 +31,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    requireResident(locals);
+    requireSolicitante(locals);
     const body = await request.json();
     const visitanteNombre = String(body?.visitanteNombre ?? "").trim();
     const motivo = String(body?.motivo ?? "Visita").trim();

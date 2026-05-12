@@ -34,22 +34,24 @@ const { complejoId } = Astro.props;
   }
   const resultPane = resultElement as HTMLDivElement | null;
 
-  const renderAuthorized = (payload: { visitanteNombre?: string; anfitrionNombre?: string }) => {
+  const renderAuthorized = (payload: { visitanteNombre?: string; solicitanteNombre?: string }) => {
     if (!resultPane) return;
     resultPane.className = "rounded-3xl bg-emerald-100 p-6 text-emerald-950";
     resultPane.innerHTML = `
       <p class="text-3xl font-extrabold">Visitante Autorizado</p>
       <p class="mt-2 text-xl font-semibold">${payload.visitanteNombre ?? "Visitante"}</p>
-      <p class="mt-2 text-base">Anfitrión: ${payload.anfitrionNombre ?? "No definido"}</p>
+      <p class="mt-2 text-base">Solicitante: ${payload.solicitanteNombre ?? "No definido"}</p>
     `;
   };
 
-  const renderDenied = () => {
+  const renderDenied = (payload: { razon?: string }) => {
     if (!resultPane) return;
     resultPane.className = "rounded-3xl bg-red-700 p-8 text-white min-h-[45vh] flex flex-col justify-center";
+    const detalle = payload.razon ? `<p class="mt-4 text-xl font-semibold">${payload.razon}</p>` : "";
     resultPane.innerHTML = `
       <p class="text-5xl font-black tracking-tight">ACCESO NO AUTORIZADO</p>
-      <p class="mt-4 text-2xl font-bold">Verifica el pase o contacta a administración.</p>
+      ${detalle}
+      <p class="mt-4 text-lg font-medium opacity-90">Verifica el pase o contacta a administración.</p>
     `;
   };
 
@@ -95,11 +97,11 @@ const { complejoId } = Astro.props;
         }
         stopped = true;
         const token = extractToken(result.getText());
-        const outcome = token ? await validateToken(token) : { status: "not_found" };
+        const outcome = token ? await validateToken(token) : { status: "not_found" as const, razon: "Sin token" };
         if (outcome.status === "authorized") {
           renderAuthorized(outcome);
         } else {
-          renderDenied();
+          renderDenied({ razon: outcome.razon });
         }
         (codeReader as { reset?: () => void }).reset?.();
       });

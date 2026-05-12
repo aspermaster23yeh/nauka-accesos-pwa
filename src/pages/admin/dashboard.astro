@@ -30,7 +30,7 @@ const metrics = await withTimeout(
   getAdminMetrics({
     accessToken,
     userId: user!.id,
-    role: "admin",
+    role: profile?.role === "super_admin" ? "super_admin" : "admin",
     complejoId,
     lotNumber: profile?.lot_number
   }),

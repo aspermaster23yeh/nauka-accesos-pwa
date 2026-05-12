@@ -1,0 +1,13 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+---
+
+<MainLayout title="Cuenta suspendida">
+  <div class="rounded-2xl bg-red-50 p-6 text-red-950">
+    <p class="text-lg font-semibold">Acceso suspendido</p>
+    <p class="mt-2 text-sm leading-relaxed">Tu cuenta no puede operar en este momento. Contacta a administración de Nauka.</p>
+    <form method="post" action="/api/auth/logout" class="mt-6">
+      <button type="submit" class="text-sm font-semibold text-red-900 underline">Cerrar sesión</button>
+    </form>
+  </div>
+</MainLayout>

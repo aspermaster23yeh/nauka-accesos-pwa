@@ -23,6 +23,10 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       <input id="manual-token" placeholder="Pegar token QR" class="h-11 flex-1 rounded-lg bg-[#f3f3f4] px-3 text-sm outline-none" />
       <button id="validate-token" class="h-11 rounded-lg bg-[#213138] px-4 text-sm font-semibold text-white">Validar</button>
     </div>
+    <label id="evidence-wrap" class="mt-3 hidden flex-col gap-1 text-xs font-semibold text-[#5f6368]">
+      Foto de evidencia (obligatoria en salida)
+      <input id="evidence-input" type="file" accept="image/*" capture="environment" class="text-sm font-normal" />
+    </label>
   </section>
 
   <section class="relative -mx-4 -mt-6 mb-6 h-[45vh] overflow-hidden bg-[#2f3131]">
@@ -77,6 +81,8 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   const validateTokenButton = document.getElementById("validate-token");
   const visitorNameNode = document.getElementById("visitor-name");
   const lotNode = document.getElementById("lot-number");
+  const evidenceWrap = document.getElementById("evidence-wrap");
+  const evidenceInput = document.getElementById("evidence-input");
   const resolvedComplejoId = scannerRoot?.getAttribute("data-complejo-id") ?? "complejo-1";
 
   let accessType = "entrada";
@@ -218,10 +224,37 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       window.location.href = `/guardia/acceso-denegado?reason=${reason}`;
       return;
     }
+    let evidenciaPath = "";
+    if (accessType === "salida") {
+      const fileInput = evidenceInput instanceof HTMLInputElement ? evidenceInput : null;
+      const file = fileInput?.files?.[0];
+      if (!file) {
+        alert("La salida requiere una foto de evidencia.");
+        return;
+      }
+      const fd = new FormData();
+      fd.append("file", file);
+      const uploadRes = await fetch("/api/guardia/subir-evidencia", { method: "POST", body: fd });
+      if (!uploadRes.ok) {
+        const payload = await uploadRes.json().catch(() => ({}));
+        alert(payload.error ?? "No se pudo subir la evidencia.");
+        return;
+      }
+      const uploadPayload = await uploadRes.json().catch(() => ({}));
+      evidenciaPath = typeof uploadPayload.path === "string" ? uploadPayload.path : "";
+      if (!evidenciaPath) {
+        alert("No se recibió la ruta de evidencia.");
+        return;
+      }
+    }
     const response = await fetch("/api/guardia/registrar-movimiento", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: currentToken, tipoEvento: accessType })
+      body: JSON.stringify({
+        token: currentToken,
+        tipoEvento: accessType,
+        evidenciaStoragePath: evidenciaPath || undefined
+      })
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
@@ -238,6 +271,10 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     });
 
     if (!actionLabel || !statusTitle || !statusChip || !accessAction) return;
+    if (evidenceWrap) {
+      evidenceWrap.classList.toggle("hidden", accessType !== "salida");
+      evidenceWrap.classList.toggle("flex", accessType === "salida");
+    }
     actionLabel.textContent = accessType === "entrada" ? "Registrar entrada" : "Registrar salida";
     if (qrState === "valido") {
       statusTitle.textContent = "Visitante Autorizado";

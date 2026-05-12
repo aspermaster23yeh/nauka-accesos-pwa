@@ -27,9 +27,23 @@ const inferredActiveNav =
 const profile = Astro.locals.profile;
 const user = Astro.locals.user;
 const isAuthenticated = Boolean(profile && user);
-const roleLabel = profile?.role === "admin" ? "Administrador" : profile?.role === "guardia" ? "Guardia" : "Residente";
+const roleLabel =
+  profile?.role === "admin"
+    ? "Administrador"
+    : profile?.role === "super_admin"
+      ? "Super administrador"
+      : profile?.role === "guardia"
+        ? "Guardia"
+        : "Solicitante";
 const userName = profile?.full_name ?? user?.email ?? "Usuario";
-const roleHome = profile?.role === "admin" ? "/admin/dashboard" : profile?.role === "guardia" ? "/guardia/escaner" : "/residente/inicio";
+const roleHome =
+  profile?.role === "admin"
+    ? "/admin/dashboard"
+    : profile?.role === "super_admin"
+      ? "/super-admin/dashboard"
+      : profile?.role === "guardia"
+        ? "/guardia/escaner"
+        : "/solicitante/inicio";
 const resolvedTopBar =
   topBar && isAuthenticated
     ? {
@@ -40,19 +54,24 @@ const resolvedTopBar =
       }
     : topBar;
 const roleLinks =
-  profile?.role === "admin"
-    ? [
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/bitacora", label: "Bitacora" }
-      ]
+  profile?.role === "admin" || profile?.role === "super_admin"
+    ? profile?.role === "super_admin"
+      ? [
+          { href: "/super-admin/dashboard", label: "Usuarios" },
+          { href: "/super-admin/bitacora", label: "Bitácora global" }
+        ]
+      : [
+          { href: "/admin/dashboard", label: "Dashboard" },
+          { href: "/admin/bitacora", label: "Bitacora" }
+        ]
     : profile?.role === "guardia"
       ? [
           { href: "/guardia/escaner", label: "Escaner QR" },
           { href: "/guardia/acceso-denegado", label: "Accesos denegados" }
         ]
       : [
-          { href: "/residente/inicio", label: "Inicio" },
-          { href: "/residente/nuevo-pase", label: "Nuevo pase" }
+          { href: "/solicitante/inicio", label: "Inicio" },
+          { href: "/solicitante/nuevo-pase", label: "Nuevo pase" }
         ];
 ---
 

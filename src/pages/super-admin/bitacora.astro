@@ -1,0 +1,39 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import { superAdminNav } from "../../lib/nav";
+import { getBitacoraScope } from "../../lib/access";
+
+const q = Astro.url.searchParams.get("q") ?? "";
+const registros = await getBitacoraScope({ allComplejos: true, query: q });
+---
+
+<AppLayout
+  title="Bitácora global - Nauka"
+  topBar={{ title: "Bitácora global", leftIcon: "arrow_back", leftHref: "/super-admin/dashboard", rightIcon: "logout", rightHref: "/api/auth/logout" }}
+  navItems={superAdminNav}
+  pageTitle="Movimientos (todos los complejos)"
+>
+  <form class="mb-4 space-y-2" method="get">
+    <input name="q" value={q} class="h-11 w-full rounded-xl border border-[#ececec] px-3 text-sm" placeholder="Buscar..." />
+    <button type="submit" class="h-10 w-full rounded-xl bg-[#213138] text-sm font-semibold text-white">Buscar</button>
+  </form>
+
+  <div class="space-y-2">
+    {registros.map((row) => (
+      <a
+        href={`/admin/detalle-movimiento?id=${row.id}`}
+        class={`block rounded-xl p-4 text-sm shadow-sm ${row.resultado === "rechazado" ? "bg-[#ffdad6]/30" : "bg-white"}`}
+      >
+        <p class="font-semibold text-[#213138]">
+          {row.complejo_id} · {new Date(row.created_at).toLocaleString("es-MX")}
+        </p>
+        <p class="text-[#5f6368]">
+          {row.visitante_nombre} · {row.tipo_evento} · {row.resultado}
+        </p>
+        <p class="text-xs text-[#5f6368]">
+          Solicitante: {row.solicitante_nombre ?? "—"} · {row.motivo ?? ""}
+        </p>
+      </a>
+    ))}
+  </div>
+</AppLayout>

@@ -1,0 +1,41 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+---
+
+<MainLayout title="Términos y condiciones - Nauka">
+  <div class="mx-auto max-w-lg text-slate-800">
+    <h2 class="text-xl font-bold text-slate-900">Responsabilidad en el acceso</h2>
+    <p class="mt-4 text-sm leading-relaxed text-slate-600">
+      Al usar Nauka Accesos confirmas que eres responsable de los pases que generas o validas, que no autorizarás el ingreso de personas ajenas al proyecto, y que la información que registras (incluida identificación oficial cargada) es veraz.
+    </p>
+    <p class="mt-3 text-sm leading-relaxed text-slate-600">
+      El incumplimiento puede conllevar la suspensión de tu cuenta y las acciones que correspondan según el reglamento del complejo.
+    </p>
+    <form id="accept-form" class="mt-8 space-y-4">
+      <label class="flex items-start gap-3 text-sm">
+        <input type="checkbox" id="accept-check" class="mt-1 h-4 w-4 rounded border-slate-300" required />
+        <span>He leído y acepto los términos y la responsabilidad descrita.</span>
+      </label>
+      <button type="submit" class="h-12 w-full rounded-xl bg-slate-900 text-sm font-semibold text-white">Continuar</button>
+    </form>
+  </div>
+</MainLayout>
+
+<script is:inline>
+  const form = document.getElementById("accept-form");
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const check = document.getElementById("accept-check");
+    if (!(check instanceof HTMLInputElement) || !check.checked) {
+      alert("Debes aceptar los términos para continuar.");
+      return;
+    }
+    const res = await fetch("/api/onboarding/accept-terms", { method: "POST" });
+    if (!res.ok) {
+      alert("No se pudo guardar la aceptación. Intenta de nuevo.");
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    window.location.href = typeof data.redirect === "string" ? data.redirect : "/";
+  });
+</script>

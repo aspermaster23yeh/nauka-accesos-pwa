@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase";
+import { getSupabaseServerClient, getSupabaseServiceClient, type AppRole } from "../../../lib/supabase";
 
 export const prerender = false;
 
@@ -8,6 +8,13 @@ function sanitizeEmail(raw: FormDataEntryValue | null): string {
     .trim()
     .replace(/^["'\s]+|["'\s]+$/g, "")
     .toLowerCase();
+}
+
+function loginTarget(role: AppRole): string {
+  if (role === "super_admin") return "/super-admin/dashboard";
+  if (role === "admin") return "/admin/dashboard";
+  if (role === "guardia") return "/guardia/escaner";
+  return "/solicitante/inicio";
 }
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -52,7 +59,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       const adminSupabase = getSupabaseServiceClient();
       const upsertPayload = {
         id: data.user.id,
-        role: "residente" as const,
+        role: "solicitante" as const,
         full_name: data.user.user_metadata?.full_name ?? null,
         lot_number: data.user.user_metadata?.lot_number ?? null,
         complejo_id: data.user.user_metadata?.complejo_id ?? "complejo-1"
@@ -64,11 +71,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           headers: { Location: `/auth/resultado?status=error&reason=${encodeURIComponent(upsertError.message)}` }
         });
       }
-      profile = { role: "residente", id: data.user.id };
+      profile = { role: "solicitante", id: data.user.id };
     }
 
-    const target =
-      profile.role === "admin" ? "/admin/dashboard" : profile.role === "guardia" ? "/guardia/escaner" : "/residente/inicio";
+    const target = loginTarget(profile.role as AppRole);
     return new Response(null, {
       status: 303,
       headers: {

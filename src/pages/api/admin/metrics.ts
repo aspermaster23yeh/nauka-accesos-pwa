@@ -4,7 +4,10 @@ import { getAdminMetrics, getBitacoraByComplejo } from "../../../lib/access";
 export const prerender = false;
 
 export const GET: APIRoute = async ({ locals, url }) => {
-  if (!locals.user || !locals.profile || locals.profile.role !== "admin" || !locals.accessToken) {
+  if (!locals.user || !locals.profile || !locals.accessToken) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+  if (locals.profile.role !== "admin" && locals.profile.role !== "super_admin") {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
   try {
@@ -14,7 +17,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
       getAdminMetrics({
         accessToken: locals.accessToken,
         userId: locals.user.id,
-        role: "admin",
+        role: locals.profile.role === "super_admin" ? "super_admin" : "admin",
         complejoId,
         lotNumber: locals.profile.lot_number
       }),

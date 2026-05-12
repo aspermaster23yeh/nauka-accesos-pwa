@@ -6,14 +6,22 @@ const supabase = getSupabaseServiceClient();
 const { data: row } = id
   ? await supabase
       .from("bitacora_accesos")
-      .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, origen, token_qr, pase_id, guardia_id")
+      .select(
+        "id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, origen, token_qr, pase_id, guardia_id, evidencia_storage_path"
+      )
       .eq("id", id)
       .maybeSingle()
   : { data: null };
+
+let evidenciaUrl: string | null = null;
+if (row?.evidencia_storage_path) {
+  const { data: signed } = await supabase.storage.from("evidencias_salida").createSignedUrl(row.evidencia_storage_path, 3600);
+  evidenciaUrl = signed?.signedUrl ?? null;
+}
 const { data: pass } = row?.pase_id
   ? await supabase.from("pases_acceso").select("id, creado_por, motivo, notas, created_at").eq("id", row.pase_id).maybeSingle()
   : { data: null };
-const { data: residenteProfile } = pass?.creado_por
+const { data: solicitanteProfile } = pass?.creado_por
   ? await supabase.from("profiles").select("id, full_name, lot_number").eq("id", pass.creado_por).maybeSingle()
   : { data: null };
 const { data: guardiaProfile } = row?.guardia_id
@@ -63,8 +71,8 @@ const { data: guardiaProfile } = row?.guardia_id
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Autorizado por</p>
-          <p class="text-2xl font-semibold text-[#213138]">{residenteProfile?.full_name ?? "Sistema Nauka"}</p>
-          <p class="text-sm text-[#5f6368]">Lote {residenteProfile?.lot_number ?? row?.lote_number ?? "N/A"}</p>
+          <p class="text-2xl font-semibold text-[#213138]">{solicitanteProfile?.full_name ?? "Sistema Nauka"}</p>
+          <p class="text-sm text-[#5f6368]">Lote {solicitanteProfile?.lot_number ?? row?.lote_number ?? "N/A"}</p>
         </div>
       </div>
       <div class="mt-4 rounded-xl bg-[#f3f3f4] p-3">
@@ -83,9 +91,15 @@ const { data: guardiaProfile } = row?.guardia_id
         <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Resultado</span><span class="text-lg font-semibold text-[#213138]">{row?.resultado ?? "N/A"}</span></p>
         <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Razon</span><span class="text-lg font-semibold text-[#213138]">{row?.razon ?? "Sin observaciones"}</span></p>
         <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Motivo del pase</span><span class="text-lg font-semibold text-[#213138]">{pass?.motivo ?? "N/A"}</span></p>
-        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Notas del residente</span><span class="text-lg font-semibold text-[#213138]">{pass?.notas ?? "Sin notas"}</span></p>
+        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Notas del solicitante</span><span class="text-lg font-semibold text-[#213138]">{pass?.notas ?? "Sin notas"}</span></p>
         <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Pase creado</span><span class="text-lg font-semibold text-[#213138]">{pass?.created_at ? new Date(pass.created_at).toLocaleString("es-MX") : "N/A"}</span></p>
         <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Registro</span><span class="text-lg font-semibold text-[#213138]">{row?.id ?? "N/A"}</span></p>
+        {evidenciaUrl && (
+          <div class="mt-4">
+            <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Evidencia de salida</p>
+            <img src={evidenciaUrl} alt="Evidencia" class="mt-2 max-h-64 rounded-xl border border-[#ececec] object-contain" />
+          </div>
+        )}
       </div>
     </article>
   </section>

@@ -11,6 +11,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const body = await request.json().catch(() => null);
   const tokenQr = String(body?.token ?? "");
   const tipoEvento = body?.tipoEvento === "salida" ? "salida" : "entrada";
+  const evidenciaStoragePath = body?.evidenciaStoragePath != null ? String(body.evidenciaStoragePath).trim() : "";
+
   if (!tokenQr) {
     return new Response(JSON.stringify({ error: "Token requerido." }), { status: 400 });
   }
@@ -21,7 +23,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       guardiaId: locals.user.id,
       complejoId: locals.profile.complejo_id ?? "complejo-1",
       tokenQr,
-      tipoEvento
+      tipoEvento,
+      evidenciaStoragePath: evidenciaStoragePath || null
     });
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,

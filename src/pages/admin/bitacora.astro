@@ -1,10 +1,13 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
 import { adminNav } from "../../lib/nav";
-import { getBitacoraByComplejo } from "../../lib/access";
+import { getBitacoraByComplejo, getBitacoraScope } from "../../lib/access";
 const q = Astro.url.searchParams.get("q") ?? "";
 const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
-const registros = await getBitacoraByComplejo(complejoId, q, Astro.locals.accessToken ?? undefined);
+const isSuper = Astro.locals.profile?.role === "super_admin";
+const registros = isSuper
+  ? await getBitacoraScope({ allComplejos: true, query: q })
+  : await getBitacoraByComplejo(complejoId, q, Astro.locals.accessToken ?? undefined);
 ---
 
 <AppLayout
@@ -45,7 +48,7 @@ const registros = await getBitacoraByComplejo(complejoId, q, Astro.locals.access
             {(row.tipo_evento ?? "movimiento").toUpperCase()} · {row.lote_number ?? "Sin lote"} {row.razon ? `· ${row.razon}` : ""}
           </p>
           <p class="text-xs text-[#5f6368]">
-            Residente: {row.residente_nombre ?? "No identificado"} · Motivo: {row.motivo ?? "N/A"}
+            Solicitante: {row.solicitante_nombre ?? "No identificado"} · Motivo: {row.motivo ?? "N/A"}
           </p>
           {row.notas && <p class="text-xs text-[#5f6368]">Notas: {row.notas}</p>}
         </div>

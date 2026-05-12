@@ -4,7 +4,10 @@ import { getSupabaseServerClient } from "../../../lib/supabase";
 export const prerender = false;
 
 export const GET: APIRoute = async ({ locals }) => {
-  if (!locals.user || !locals.profile || locals.profile.role !== "admin" || !locals.accessToken) {
+  if (!locals.user || !locals.profile || !locals.accessToken) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+  if (locals.profile.role !== "admin" && locals.profile.role !== "super_admin") {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
   const supabase = getSupabaseServerClient(locals.accessToken);

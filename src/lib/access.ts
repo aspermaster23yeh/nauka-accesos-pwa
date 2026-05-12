@@ -1,3 +1,4 @@
+import type { AppRole } from "./supabase";
 import { getSupabaseServiceClient } from "./supabase";
 
 const MIN_PASS_LEAD_MINUTES = 1;
@@ -8,7 +9,7 @@ export type AccessStatus = "authorized" | "expired" | "not_found";
 export interface AuthContext {
   accessToken: string;
   userId: string;
-  role: "residente" | "guardia" | "admin";
+  role: AppRole;
   complejoId: string;
   lotNumber?: string | null;
 }
@@ -16,7 +17,7 @@ export interface AuthContext {
 export interface AccessValidationResult {
   status: AccessStatus;
   visitanteNombre?: string;
-  residenteNombre?: string;
+  solicitanteNombre?: string;
   vencimiento?: string;
   razon?: string;
   paseId?: string;
@@ -45,7 +46,7 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
       resultado: "rechazado",
       razon: "Token no encontrado"
     });
-    return { status: "not_found" };
+    return { status: "not_found", razon: "Token no encontrado" };
   }
 
   if (data.estado !== "vigente") {
@@ -61,7 +62,7 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
       resultado: "rechazado",
       razon: "Token inactivo"
     });
-    return { status: "expired", razon: "Token inactivo", paseId: data.id, lote: data.lote_number };
+    return { status: "expired", razon: "Token inactivo", paseId: data.id, lote: data.lote_number, visitanteNombre: data.visitante_nombre };
   }
 
   const now = new Date();
@@ -79,7 +80,7 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
       resultado: "rechazado",
       razon: "Codigo expirado"
     });
-    return { status: "expired", razon: "Codigo expirado", paseId: data.id, lote: data.lote_number };
+    return { status: "expired", razon: "Codigo expirado", paseId: data.id, lote: data.lote_number, visitanteNombre: data.visitante_nombre };
   }
 
   await registerBitacoraEvent({
@@ -94,27 +95,36 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
     resultado: "autorizado"
   });
 
-  const { data: residentProfile } = await supabase.from("profiles").select("full_name").eq("id", data.creado_por).maybeSingle();
+  const { data: solicitanteProfile } = await supabase.from("profiles").select("full_name").eq("id", data.creado_por).maybeSingle();
 
   return {
     status: "authorized",
     visitanteNombre: data.visitante_nombre,
-    residenteNombre: residentProfile?.full_name ?? undefined,
+    solicitanteNombre: solicitanteProfile?.full_name ?? undefined,
     vencimiento: data.vence_en,
     paseId: data.id,
     lote: data.lote_number
   };
 }
 
-export async function getBitacoraByComplejo(complejoId: string, query?: string, accessToken?: string) {
+export async function getBitacoraByComplejo(complejoId: string, query?: string, _accessToken?: string) {
+  return getBitacoraScope({ complejoId, query, allComplejos: false });
+}
+
+export async function getBitacoraScope(input: { complejoId?: string; query?: string; allComplejos?: boolean }) {
   const supabase = getSupabaseServiceClient();
-  const normalizedQuery = query?.trim();
+  const normalizedQuery = input.query?.trim();
   let statement = supabase
     .from("bitacora_accesos")
-    .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, token_qr, guardia_id")
-    .eq("complejo_id", complejoId)
+    .select(
+      "id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, token_qr, guardia_id, evidencia_storage_path, complejo_id"
+    )
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(input.allComplejos ? 200 : 100);
+
+  if (!input.allComplejos && input.complejoId) {
+    statement = statement.eq("complejo_id", input.complejoId);
+  }
 
   if (normalizedQuery) {
     statement = statement.or(
@@ -146,8 +156,8 @@ export async function getBitacoraByComplejo(complejoId: string, query?: string, 
       ...row,
       motivo: pass?.motivo ?? null,
       notas: pass?.notas ?? null,
-      residente_nombre: creator?.full_name ?? null,
-      residente_lote: creator?.lot_number ?? null
+      solicitante_nombre: creator?.full_name ?? null,
+      solicitante_lote: creator?.lot_number ?? null
     };
   });
 }
@@ -208,7 +218,7 @@ export async function createVisitorPass(input: {
   };
 }
 
-export async function getActivePassesForResident(ctx: AuthContext) {
+export async function getActivePassesForSolicitante(ctx: AuthContext) {
   const supabase = getSupabaseServiceClient();
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
@@ -229,12 +239,19 @@ export async function registerAccessMovement(input: {
   complejoId: string;
   tokenQr: string;
   tipoEvento: "entrada" | "salida";
+  evidenciaStoragePath?: string | null;
 }) {
   const supabase = getSupabaseServiceClient();
+  const normalizedToken = input.tokenQr.trim().toLowerCase();
+
+  if (input.tipoEvento === "salida" && !input.evidenciaStoragePath?.trim()) {
+    throw new Error("La salida requiere una foto de evidencia.");
+  }
+
   const { data: pass, error } = await supabase
     .from("pases_acceso")
-    .select("id, visitante_nombre, lote_number, estado")
-    .eq("token_qr", input.tokenQr)
+    .select("id, visitante_nombre, lote_number, estado, token_qr")
+    .ilike("token_qr", normalizedToken)
     .eq("complejo_id", input.complejoId)
     .maybeSingle();
   if (error || !pass) throw new Error("Pase no encontrado.");
@@ -242,13 +259,14 @@ export async function registerAccessMovement(input: {
   const { error: bitacoraError } = await supabase.from("bitacora_accesos").insert({
     complejo_id: input.complejoId,
     pase_id: pass.id,
-    token_qr: input.tokenQr,
+    token_qr: pass.token_qr ?? normalizedToken,
     guardia_id: input.guardiaId,
     visitante_nombre: pass.visitante_nombre,
     lote_number: pass.lote_number,
     tipo_evento: input.tipoEvento,
     resultado: "autorizado",
-    origen: "caseta"
+    origen: "caseta",
+    evidencia_storage_path: input.evidenciaStoragePath?.trim() ?? null
   });
   if (bitacoraError) throw new Error(bitacoraError.message);
 
@@ -262,24 +280,23 @@ export async function getAdminMetrics(ctx: AuthContext) {
   const supabase = getSupabaseServiceClient();
   const startDay = new Date();
   startDay.setHours(0, 0, 0, 0);
+  const startIso = startDay.toISOString();
+  const isSuper = ctx.role === "super_admin";
+
+  const bitacoraBase = () => supabase.from("bitacora_accesos").select("id", { count: "planned", head: true }).gte("created_at", startIso);
+
+  const movQ = isSuper ? bitacoraBase() : bitacoraBase().eq("complejo_id", ctx.complejoId);
+  const authQ = isSuper
+    ? bitacoraBase().eq("resultado", "autorizado")
+    : bitacoraBase().eq("complejo_id", ctx.complejoId).eq("resultado", "autorizado");
+  const rejQ = isSuper
+    ? bitacoraBase().eq("resultado", "rechazado")
+    : bitacoraBase().eq("complejo_id", ctx.complejoId).eq("resultado", "rechazado");
+  const incBase = supabase.from("incidentes").select("id", { count: "planned", head: true }).neq("estado", "cerrado");
+  const incQ = isSuper ? incBase : incBase.eq("complejo_id", ctx.complejoId);
 
   const [{ count: totalMovimientos }, { count: totalAutorizados }, { count: totalRechazados }, { count: incidentesAbiertos }] =
-    await Promise.all([
-      supabase.from("bitacora_accesos").select("id", { count: "planned", head: true }).eq("complejo_id", ctx.complejoId).gte("created_at", startDay.toISOString()),
-      supabase
-        .from("bitacora_accesos")
-        .select("id", { count: "planned", head: true })
-        .eq("complejo_id", ctx.complejoId)
-        .eq("resultado", "autorizado")
-        .gte("created_at", startDay.toISOString()),
-      supabase
-        .from("bitacora_accesos")
-        .select("id", { count: "planned", head: true })
-        .eq("complejo_id", ctx.complejoId)
-        .eq("resultado", "rechazado")
-        .gte("created_at", startDay.toISOString()),
-      supabase.from("incidentes").select("id", { count: "planned", head: true }).eq("complejo_id", ctx.complejoId).neq("estado", "cerrado")
-    ]);
+    await Promise.all([movQ, authQ, rejQ, incQ]);
 
   return {
     totalMovimientos: totalMovimientos ?? 0,

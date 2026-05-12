@@ -1,12 +1,12 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
-import { residentNav } from "../../lib/nav";
-import { getActivePassesForResident } from "../../lib/access";
+import { solicitanteNav } from "../../lib/nav";
+import { getActivePassesForSolicitante } from "../../lib/access";
 const activePasses = Astro.locals.user && Astro.locals.accessToken
-  ? await getActivePassesForResident({
+  ? await getActivePassesForSolicitante({
       accessToken: Astro.locals.accessToken,
       userId: Astro.locals.user.id,
-      role: "residente",
+      role: "solicitante",
       complejoId: Astro.locals.profile?.complejo_id ?? "complejo-1",
       lotNumber: Astro.locals.profile?.lot_number
     }).catch(() => [])
@@ -15,15 +15,15 @@ const lotTitle = Astro.locals.profile?.lot_number ?? "A-22";
 ---
 
 <AppLayout
-  title="Inicio Residente - Nauka Nayarit"
+  title="Inicio Solicitante - Nauka Nayarit"
   topBar={{ title: "Nauka Nayarit", leftIcon: "location_on", leftHref: "#", rightIcon: "person", rightHref: "#" }}
   pageTitle={`Lote ${lotTitle}`}
-  navItems={residentNav}
+  navItems={solicitanteNav}
 >
-  <p class="-mt-5 mb-10 text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Panel de Residente</p>
+  <p class="-mt-5 mb-10 text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Panel de Solicitante</p>
 
   <a
-    href="/residente/nuevo-pase"
+    href="/solicitante/nuevo-pase"
     class="mb-10 flex h-24 w-full items-center justify-center gap-3 rounded-[14px] bg-gradient-to-b from-[#213138] to-[#37474f] px-5 text-3xl font-semibold text-white shadow-[0_14px_28px_rgba(26,28,28,0.18)]"
   >
     <span class="material-symbols-outlined text-4xl">add</span>
@@ -45,7 +45,7 @@ const lotTitle = Astro.locals.profile?.lot_number ?? "A-22";
           </div>
           <p class="text-xl font-semibold text-[#213138]">Aun no tienes pases activos</p>
           <p class="mt-1 text-sm text-[#5f6368]">Crea tu primer pase para compartirlo por WhatsApp.</p>
-          <a href="/residente/nuevo-pase" class="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#213138] px-4 text-sm font-semibold text-white">
+          <a href="/solicitante/nuevo-pase" class="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#213138] px-4 text-sm font-semibold text-white">
             Crear pase
           </a>
         </article>
@@ -63,7 +63,7 @@ const lotTitle = Astro.locals.profile?.lot_number ?? "A-22";
                   {new Date(pass.vence_en).toLocaleString("es-MX", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })} · {(pass.motivo ?? "VISITA").toUpperCase()}
                 </p>
                 <div class="mt-4 flex gap-3">
-                  <a href={`/residente/pase-demo?code=${encodeURIComponent(pass.token_qr)}&state=valid&type=entrada`} class="flex-1 rounded-xl bg-[#eeeeee] px-4 py-3 text-center text-2xl font-semibold text-[#213138]">
+                  <a href={`/pase/${encodeURIComponent(pass.token_qr)}?type=entrada`} class="flex-1 rounded-xl bg-[#eeeeee] px-4 py-3 text-center text-2xl font-semibold text-[#213138]">
                     Ver QR
                   </a>
                   <button data-share-token={pass.token_qr} class="share-pass grid w-12 place-items-center rounded-xl bg-[#25D366]/10 text-[#075E54]">

@@ -1,7 +1,7 @@
 import { createClient, type User, type SupabaseClient } from "@supabase/supabase-js";
 
 type PublicSchema = "public";
-export type AppRole = "residente" | "guardia" | "admin";
+export type AppRole = "solicitante" | "guardia" | "admin" | "super_admin";
 
 export interface UserProfile {
   id: string;
@@ -9,6 +9,10 @@ export interface UserProfile {
   full_name: string | null;
   lot_number: string | null;
   complejo_id: string | null;
+  terms_accepted_at: string | null;
+  terms_version: string | null;
+  onboarding_status: string;
+  ine_storage_path: string | null;
 }
 
 function readEnv(...keys: string[]): string | undefined {
@@ -111,12 +115,20 @@ export async function getProfileForUser(userId: string, accessToken?: string): P
     const client = getSupabaseServiceClient();
     const { data, error } = await client
       .from("profiles")
-      .select("id, role, full_name, lot_number, complejo_id")
+      .select(
+        "id, role, full_name, lot_number, complejo_id, terms_accepted_at, terms_version, onboarding_status, ine_storage_path"
+      )
       .eq("id", userId)
       .maybeSingle();
 
     if (error || !data) return null;
-    return data as UserProfile;
+    return {
+      ...data,
+      onboarding_status: (data as { onboarding_status?: string }).onboarding_status ?? "activo",
+      terms_accepted_at: (data as { terms_accepted_at?: string | null }).terms_accepted_at ?? null,
+      terms_version: (data as { terms_version?: string | null }).terms_version ?? null,
+      ine_storage_path: (data as { ine_storage_path?: string | null }).ine_storage_path ?? null
+    } as UserProfile;
   } catch {
     return null;
   }
