@@ -9,12 +9,20 @@ export interface BottomNavItem {
 interface Props {
   items: BottomNavItem[];
   activeId?: string;
+  /** Misma anchura que AppLayout wide en escritorio */
+  wide?: boolean;
 }
 
-const { items, activeId } = Astro.props;
+const { items, activeId, wide = false } = Astro.props;
+const navMax = wide ? "max-w-[430px] md:max-w-6xl lg:max-w-7xl" : "max-w-[430px]";
 ---
 
-<nav class="fixed bottom-0 left-1/2 z-50 flex h-20 w-full max-w-[430px] -translate-x-1/2 items-center justify-around border-t border-white/70 bg-white/90 px-2 backdrop-blur-xl">
+<nav
+  class:list={[
+    "fixed bottom-0 left-1/2 z-50 flex h-20 w-full -translate-x-1/2 items-center justify-around border-t border-white/70 bg-white/90 px-2 backdrop-blur-xl",
+    navMax
+  ]}
+>
   {
     items.map((item) => {
       const isActive = item.id === activeId;

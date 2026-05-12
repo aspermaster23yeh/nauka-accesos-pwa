@@ -5,6 +5,8 @@ import BottomNav, { type BottomNavItem } from "../components/app/BottomNav.astro
 
 interface Props {
   title: string;
+  /** Ancho extra en md+ (panel admin / web) */
+  wide?: boolean;
   pageTitle?: string;
   topBar?: {
     title: string;
@@ -19,7 +21,8 @@ interface Props {
   bodyClass?: string;
 }
 
-const { title, pageTitle, topBar, navItems = [], activeNav, bodyClass = "bg-[#f9f9f9] text-[#1a1c1c]" } = Astro.props;
+const { title, wide = false, pageTitle, topBar, navItems = [], activeNav, bodyClass = "bg-[#f9f9f9] text-[#1a1c1c]" } = Astro.props;
+const shellMax = wide ? "max-w-[430px] md:max-w-6xl lg:max-w-7xl" : "max-w-[430px]";
 const currentPath = Astro.url.pathname;
 const inferredActiveNav =
   activeNav ??
@@ -91,7 +94,7 @@ const roleLinks =
     />
   </head>
   <body class={`min-h-screen ${bodyClass}`}>
-    <div class="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col bg-[#f9f9f9]">
+    <div class:list={["mx-auto flex min-h-[100dvh] w-full flex-col bg-[#f9f9f9]", shellMax]}>
       {resolvedTopBar && <TopAppBar {...resolvedTopBar} />}
       {
         isAuthenticated && (
@@ -135,11 +138,22 @@ const roleLinks =
           </>
         )
       }
-      <main class={`flex-1 px-4 ${navItems.length > 0 ? "pb-24" : "pb-6"} ${pageTitle ? "pt-6" : "pt-4"}`}>
-        {pageTitle && <h1 class="mb-6 text-[2.6rem] font-extrabold leading-tight tracking-[-0.02em] text-[#213138]">{pageTitle}</h1>}
+      <main
+        class:list={[
+          "flex-1 px-4",
+          wide && "md:px-8",
+          navItems.length > 0 ? "pb-24" : "pb-6",
+          pageTitle ? "pt-6" : "pt-4"
+        ]}
+      >
+        {
+          pageTitle && (
+            <h1 class="mb-6 text-3xl font-extrabold leading-tight tracking-[-0.02em] text-[#213138] md:text-[2.6rem]">{pageTitle}</h1>
+          )
+        }
         <slot />
       </main>
-      {navItems.length > 0 && <BottomNav items={navItems} activeId={inferredActiveNav} />}
+      {navItems.length > 0 && <BottomNav items={navItems} activeId={inferredActiveNav} wide={wide} />}
     </div>
     {
       isAuthenticated && (

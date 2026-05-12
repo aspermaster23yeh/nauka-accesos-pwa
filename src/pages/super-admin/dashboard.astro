@@ -31,6 +31,7 @@ const { data: profiles } = await supabase
 ---
 
 <AppLayout
+  wide
   title="Super Admin - Nauka"
   topBar={{ title: "Nauka Super Admin", leftIcon: "shield", leftHref: "#", rightIcon: "logout", rightHref: "/api/auth/logout" }}
   navItems={superAdminNav}
@@ -38,7 +39,7 @@ const { data: profiles } = await supabase
 >
   <section class="grid grid-cols-2 gap-3">
     <article class="rounded-xl bg-white p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)]">
-      <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#64748b]">Movimientos hoy (global)</p>
+      <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#64748b]">Movimientos (24 h, global)</p>
       <p class="mt-2 text-3xl font-extrabold text-[#213138]">{metrics.totalMovimientos}</p>
     </article>
     <article class="rounded-xl bg-white p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)]">

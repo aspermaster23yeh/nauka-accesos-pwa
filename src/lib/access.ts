@@ -107,20 +107,21 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
   };
 }
 
-export async function getBitacoraByComplejo(complejoId: string, query?: string, _accessToken?: string) {
-  return getBitacoraScope({ complejoId, query, allComplejos: false });
+export async function getBitacoraByComplejo(complejoId: string, query?: string, _accessToken?: string, limit?: number) {
+  return getBitacoraScope({ complejoId, query, allComplejos: false, limit });
 }
 
-export async function getBitacoraScope(input: { complejoId?: string; query?: string; allComplejos?: boolean }) {
+export async function getBitacoraScope(input: { complejoId?: string; query?: string; allComplejos?: boolean; limit?: number }) {
   const supabase = getSupabaseServiceClient();
   const normalizedQuery = input.query?.trim();
+  const cap = Math.min(Math.max(input.limit ?? (input.allComplejos ? 200 : 100), 1), 500);
   let statement = supabase
     .from("bitacora_accesos")
     .select(
       "id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, token_qr, guardia_id, evidencia_storage_path, complejo_id"
     )
     .order("created_at", { ascending: false })
-    .limit(input.allComplejos ? 200 : 100);
+    .limit(cap);
 
   if (!input.allComplejos && input.complejoId) {
     statement = statement.eq("complejo_id", input.complejoId);
@@ -160,6 +161,28 @@ export async function getBitacoraScope(input: { complejoId?: string; query?: str
       solicitante_lote: creator?.lot_number ?? null
     };
   });
+}
+
+export async function getRecentPassesForComplejo(complejoId: string | null, limit = 12) {
+  const supabase = getSupabaseServiceClient();
+  let q = supabase
+    .from("pases_acceso")
+    .select("id, visitante_nombre, motivo, created_at, creado_por, lote_number, estado, complejo_id")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (complejoId) {
+    q = q.eq("complejo_id", complejoId);
+  }
+  const { data: passes, error } = await q;
+  if (error || !passes?.length) return [];
+  const ids = [...new Set(passes.map((p) => p.creado_por).filter(Boolean))] as string[];
+  const { data: creators } =
+    ids.length > 0 ? await supabase.from("profiles").select("id, full_name").in("id", ids) : { data: [] };
+  const byId = new Map((creators ?? []).map((c) => [c.id, c]));
+  return passes.map((p) => ({
+    ...p,
+    solicitante_nombre: p.creado_por ? (byId.get(p.creado_por)?.full_name ?? null) : null
+  }));
 }
 
 export async function createVisitorPass(input: {
@@ -268,7 +291,10 @@ export async function registerAccessMovement(input: {
     origen: "caseta",
     evidencia_storage_path: input.evidenciaStoragePath?.trim() ?? null
   });
-  if (bitacoraError) throw new Error(bitacoraError.message);
+  if (bitacoraError) {
+    console.error("[bitacora] insert movimiento:", bitacoraError.message);
+    throw new Error(bitacoraError.message);
+  }
 
   if (input.tipoEvento === "salida") {
     const { error: updateError } = await supabase.from("pases_acceso").update({ estado: "usado" }).eq("id", pass.id);
@@ -278,12 +304,11 @@ export async function registerAccessMovement(input: {
 
 export async function getAdminMetrics(ctx: AuthContext) {
   const supabase = getSupabaseServiceClient();
-  const startDay = new Date();
-  startDay.setHours(0, 0, 0, 0);
-  const startIso = startDay.toISOString();
+  /** Ventana móvil 24 h (UTC) para que en servidor/Vercel coincida con actividad reciente sin depender del hilo local. */
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const isSuper = ctx.role === "super_admin";
 
-  const bitacoraBase = () => supabase.from("bitacora_accesos").select("id", { count: "planned", head: true }).gte("created_at", startIso);
+  const bitacoraBase = () => supabase.from("bitacora_accesos").select("id", { count: "planned", head: true }).gte("created_at", since);
 
   const movQ = isSuper ? bitacoraBase() : bitacoraBase().eq("complejo_id", ctx.complejoId);
   const authQ = isSuper
@@ -318,7 +343,7 @@ async function registerBitacoraEvent(input: {
   resultado: "autorizado" | "rechazado";
   razon?: string;
 }) {
-  await input.supabase.from("bitacora_accesos").insert({
+  const { error } = await input.supabase.from("bitacora_accesos").insert({
     complejo_id: input.complejoId,
     pase_id: input.paseId ?? null,
     token_qr: input.token,
@@ -330,4 +355,7 @@ async function registerBitacoraEvent(input: {
     razon: input.razon ?? null,
     origen: "scanner"
   });
+  if (error) {
+    console.error("[bitacora] insert validacion:", error.message);
+  }
 }

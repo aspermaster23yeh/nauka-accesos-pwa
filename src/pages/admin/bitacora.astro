@@ -11,12 +11,15 @@ const registros = isSuper
 ---
 
 <AppLayout
+  wide
   title="Bitacora - Nauka Nayarit"
   topBar={{ title: "Nauka Nayarit", leftIcon: "person", leftHref: "#", rightIcon: "notifications", rightHref: "#" }}
   navItems={adminNav}
-  pageTitle="Registro Digital"
+  pageTitle="Registro digital"
 >
-  <p class="-mt-5 mb-6 text-sm font-bold uppercase tracking-[0.08em] text-[#7a7e82]">Bitacora de Accesos · Octubre 24, 2023</p>
+  <p class="-mt-5 mb-6 text-sm font-bold uppercase tracking-[0.08em] text-[#7a7e82] md:-mt-2">
+    Bitácora de accesos{isSuper ? " · todos los complejos" : ""}
+  </p>
 
   <form class="space-y-3" method="get">
     <div class="relative">
@@ -30,11 +33,16 @@ const registros = isSuper
   </form>
 
   <div class="my-5 flex items-center gap-3">
-    <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">Hoy</p>
+    <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">Registros</p>
     <div class="h-px flex-1 bg-[#eeeeee]"></div>
   </div>
 
-  <div class="space-y-3">
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+    {registros.length === 0 && (
+      <p class="col-span-full rounded-xl border border-dashed border-[#cfd4d9] bg-white/80 p-6 text-sm text-[#5f6368]">
+        Sin registros. Si el guardia ya operó en caseta, revisa que su perfil use el mismo <strong>complejo</strong> que los pases (por ejemplo <code class="rounded bg-[#f0f0f0] px-1">complejo-1</code>).
+      </p>
+    )}
     {registros.map((row) => (
       <a href={`/admin/detalle-movimiento?id=${row.id}`} class={`flex items-center gap-3 rounded-xl p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)] ${row.resultado === "rechazado" ? "bg-[#ffdad6]/35" : "bg-white"}`}>
         <div class={`grid h-11 w-11 place-items-center rounded-full ${row.resultado === "rechazado" ? "bg-[#ffdad6] text-[#ba1a1a]" : "bg-[#83fba5]/25 text-[#006d36]"}`}>
