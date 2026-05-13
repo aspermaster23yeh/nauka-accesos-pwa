@@ -331,6 +331,119 @@ export async function getAdminMetrics(ctx: AuthContext) {
   };
 }
 
+export type SuperAdminMovementRow = Awaited<ReturnType<typeof getBitacoraScope>>[number] & {
+  guardia_nombre?: string | null;
+};
+
+export interface LoteKpiRow {
+  /** Clave única complejo + número de lote en bitácora */
+  loteKey: string;
+  complejo_id: string | null;
+  lot_number: string | null;
+  count24h: number;
+  autorizados: number;
+  rechazados: number;
+  lastAt: string;
+  lastSummary: string;
+}
+
+/** Bitácora últimas 24 h enriquecida (guardia) + agregados por lote para KPIs. */
+export async function getSuperAdminActivityEnriched(limit = 150): Promise<{
+  movements: SuperAdminMovementRow[];
+  lotKpis: LoteKpiRow[];
+}> {
+  const rows = await getBitacoraScope({ allComplejos: true, limit });
+  const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
+  const inWindow = rows.filter((r) => new Date(r.created_at).getTime() >= sinceMs);
+
+  const guardIds = [...new Set(inWindow.map((r) => r.guardia_id).filter(Boolean))] as string[];
+  const supabase = getSupabaseServiceClient();
+  const { data: guards } =
+    guardIds.length > 0 ? await supabase.from("profiles").select("id, full_name").in("id", guardIds) : { data: [] as { id: string; full_name: string | null }[] };
+  const guardMap = new Map((guards ?? []).map((g) => [g.id, g.full_name]));
+
+  const movements: SuperAdminMovementRow[] = inWindow.map((r) => ({
+    ...r,
+    guardia_nombre: r.guardia_id ? (guardMap.get(r.guardia_id) ?? null) : null
+  }));
+
+  const lotMap = new Map<string, LoteKpiRow>();
+  for (const r of movements) {
+    const lotNum = (r.lote_number ?? "").trim() || null;
+    const cid = r.complejo_id ?? "—";
+    const loteKey = `${cid}::${lotNum ?? "Sin lote"}`;
+    let cell = lotMap.get(loteKey);
+    if (!cell) {
+      cell = {
+        loteKey,
+        complejo_id: r.complejo_id ?? null,
+        lot_number: lotNum,
+        count24h: 0,
+        autorizados: 0,
+        rechazados: 0,
+        lastAt: r.created_at,
+        lastSummary: `${r.tipo_evento} · ${r.visitante_nombre ?? "—"}`
+      };
+      lotMap.set(loteKey, cell);
+    }
+    cell.count24h += 1;
+    if (r.resultado === "autorizado") cell.autorizados += 1;
+    else cell.rechazados += 1;
+  }
+
+  const lotKpis = [...lotMap.values()].sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
+  return { movements, lotKpis };
+}
+
+export type LoteCatalogRow = {
+  id: string;
+  complejo_id: string;
+  lot_number: string;
+  owner_name: string | null;
+  responsable_profile_id: string | null;
+  responsable_nombre: string | null;
+};
+
+export async function getLotesWithResponsables(): Promise<LoteCatalogRow[]> {
+  const supabase = getSupabaseServiceClient();
+  const { data: lotes, error } = await supabase
+    .from("lotes")
+    .select("id, complejo_id, lot_number, owner_name, responsable_profile_id")
+    .order("complejo_id")
+    .order("lot_number");
+  if (error) throw new Error(error.message);
+  const ids = [...new Set((lotes ?? []).map((l) => l.responsable_profile_id).filter(Boolean))] as string[];
+  const { data: profs } =
+    ids.length > 0 ? await supabase.from("profiles").select("id, full_name").in("id", ids) : { data: [] as { id: string; full_name: string | null }[] };
+  const pmap = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
+  return (lotes ?? []).map((l) => ({
+    id: l.id as string,
+    complejo_id: l.complejo_id as string,
+    lot_number: l.lot_number as string,
+    owner_name: (l.owner_name as string | null) ?? null,
+    responsable_profile_id: (l.responsable_profile_id as string | null) ?? null,
+    responsable_nombre: l.responsable_profile_id ? (pmap.get(l.responsable_profile_id as string) ?? null) : null
+  }));
+}
+
+export async function getComplejosList() {
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase.from("complejos").select("id, nombre").order("nombre");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function getSolicitantesForSelect() {
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, lot_number, complejo_id")
+    .eq("role", "solicitante")
+    .order("full_name");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 async function registerBitacoraEvent(input: {
   supabase: ReturnType<typeof getSupabaseServiceClient>;
   complejoId: string;
