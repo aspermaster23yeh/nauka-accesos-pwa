@@ -16,7 +16,9 @@
     "@supabase/supabase-js": "^2.105.4",
     "@zxing/browser": "^0.1.5",
     "astro": "^5.7.1",
+    "jspdf": "^4.2.1",
     "motion": "^12.38.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "tailwindcss": "^3.4.17"
