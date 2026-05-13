@@ -99,127 +99,179 @@ function tipoMovimientoLabel(t: string | null | undefined) {
   title="Dashboard Admin - Nauka Nayarit"
   topBar={{ title: "Nauka Nayarit", leftIcon: "shield", leftHref: "#", rightIcon: "logout", rightHref: "/api/auth/logout" }}
   navItems={adminNav}
-  pageTitle="Bienvenido a Nauka"
+  bodyClass="bg-[#F9F8F6] text-[#213138]"
+  shellCanvasClass="nauka-soul-canvas"
 >
-  <p class="-mt-2 mb-1 font-display text-lg italic text-[#5c6569] md:text-xl">Monitoreo central</p>
-  <p class="mb-8 text-sm leading-relaxed text-[#5c6569] md:mb-10">
-    Métricas de las <strong class="font-medium text-[#213138]">últimas 24 horas</strong> — validaciones, entradas y salidas en bitácora.
-    {isSuper && <span class="block md:inline md:pl-1">Vista global de complejos.</span>}
-  </p>
+  <header class="mb-12 md:mb-16 lg:mb-20 lg:max-w-[92%]">
+    <h1 class="font-display text-[clamp(2.85rem,7.5vw,4.85rem)] leading-[1.02] tracking-[-0.02em] text-[#213138]">
+      Bienvenido a Nauka
+    </h1>
+    <p class="nauka-ui-display mt-5 max-w-2xl text-[0.95rem] font-medium leading-relaxed text-[#5c6569] md:text-lg">
+      Monitoreo editorial del acceso — métricas de las <span class="text-[#213138]">últimas 24 horas</span> en bitácora.
+      {isSuper && <span class="block pt-1 md:inline md:pl-1">Vista global de complejos.</span>}
+    </p>
+  </header>
 
-  <section class="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-4">
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-2">
-      <article class="nauka-card-aero p-5">
-        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#5c6569]">Movimientos · 24 h</p>
-        <p class="mt-2 font-display text-3xl text-[#213138] md:text-4xl">{metrics.totalMovimientos}</p>
-      </article>
-      <article class="nauka-card-aero p-5">
-        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#5c6569]">Autorizados</p>
-        <p class="mt-2 font-display text-3xl text-[#3d5c4a] md:text-4xl">{metrics.totalAutorizados}</p>
-      </article>
-      <article class="nauka-card-aero p-5">
-        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#5c6569]">Rechazados</p>
-        <p class="mt-2 font-display text-3xl text-[#9a6b5c] md:text-4xl">{metrics.totalRechazados}</p>
-      </article>
-      <article class="nauka-card-aero p-5">
-        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#5c6569]">Incidentes abiertos</p>
-        <p class="mt-2 font-display text-3xl text-[#213138] md:text-4xl">{metrics.incidentesAbiertos}</p>
-      </article>
-    </div>
-    <div class="min-h-[200px] lg:col-span-1">
-      <AdminFlowChart
-        movimientos={metrics.totalMovimientos}
-        autorizados={metrics.totalAutorizados}
-        rechazados={metrics.totalRechazados}
-        incidentes={metrics.incidentesAbiertos}
-      />
-    </div>
-  </section>
-
-  <section class="mt-10 md:mt-14">
-    <h2 class="font-display text-xl text-[#213138] md:text-2xl">Pases creados por solicitantes</h2>
-    <p class="mt-1 text-sm text-[#5c6569]">Alta de visitas en el sistema (no es la bitácora de caseta).</p>
-    {pasesRecientes.length === 0 ? (
-      <p class="mt-4 rounded-[20px] border border-dashed border-[#213138]/15 bg-[#FCFBF9] p-5 text-sm text-[#5c6569]">Sin pases recientes.</p>
-    ) : (
-      <ul class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {pasesRecientes.map((p) => (
-          <li class="nauka-card-aero p-4 text-sm">
-            <p class="font-semibold text-[#213138]">{p.visitante_nombre}</p>
-            <p class="text-[#5f6368]">
-              {p.motivo ?? "—"} · {p.estado}
-              {isSuper && p.complejo_id ? ` · ${p.complejo_id}` : ""}
-            </p>
-            <p class="mt-1 text-xs text-[#5c6569]">
-              Por: {p.solicitante_nombre ?? "—"} · {new Date(p.created_at).toLocaleString("es-MX")}
-            </p>
-          </li>
-        ))}
-      </ul>
-    )}
-  </section>
-
-  <section class="mt-10 md:mt-14">
-    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h2 class="font-display text-xl text-[#213138] md:text-2xl">Actividad reciente</h2>
-        <p class="text-sm text-[#5c6569]">Escaneos del guardia, entradas y salidas en caseta.</p>
-      </div>
-      <a
-        href="/admin/bitacora"
-        class="nauka-btn-primary inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+  <section class="flex flex-col gap-10 lg:flex-row lg:items-end lg:gap-12 xl:gap-20">
+    <div class="shrink-0 lg:w-[min(42%,20rem)] xl:w-[min(38%,22rem)]">
+      <p class="text-[0.6rem] font-semibold uppercase tracking-[0.22em] text-[#5c6569]">Movimientos · 24 h</p>
+      <p
+        class="nauka-ui-display mt-2 text-[clamp(3.75rem,14vw,7.25rem)] font-medium leading-[0.9] tracking-[-0.035em] text-[#213138]"
       >
+        {metrics.totalMovimientos}
+      </p>
+    </div>
+
+    <div class="grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-3 md:gap-4">
+      <article class="nauka-glass-editorial px-5 py-6 md:px-6 md:py-7">
+        <p class="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#5c6569]">Autorizados</p>
+        <p class="nauka-ui-display mt-3 text-[clamp(2rem,5vw,2.75rem)] font-medium leading-none tracking-[-0.03em] text-[#3d5c4a]">
+          {metrics.totalAutorizados}
+        </p>
+      </article>
+      <article class="nauka-glass-editorial px-5 py-6 md:px-6 md:py-7">
+        <p class="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#5c6569]">Rechazados</p>
+        <p class="nauka-ui-display mt-3 text-[clamp(2rem,5vw,2.75rem)] font-medium leading-none tracking-[-0.03em] text-[#9a6b5c]">
+          {metrics.totalRechazados}
+        </p>
+      </article>
+      <article class="nauka-glass-editorial px-5 py-6 md:px-6 md:py-7">
+        <p class="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#5c6569]">Incidentes abiertos</p>
+        <p class="nauka-ui-display mt-3 text-[clamp(2rem,5vw,2.75rem)] font-medium leading-none tracking-[-0.03em] text-[#213138]">
+          {metrics.incidentesAbiertos}
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="mt-12 md:mt-16">
+    <AdminFlowChart
+      movimientos={metrics.totalMovimientos}
+      autorizados={metrics.totalAutorizados}
+      rechazados={metrics.totalRechazados}
+      incidentes={metrics.incidentesAbiertos}
+    />
+  </section>
+
+  <section class="mt-14 md:mt-20">
+    <div class="max-w-xl">
+      <h2 class="font-display text-2xl tracking-[-0.02em] text-[#213138] md:text-3xl">Pases recientes</h2>
+      <p class="nauka-ui-display mt-2 text-sm font-medium leading-relaxed text-[#5c6569]">
+        Altas de visita en el sistema — lectura en timeline, lo más reciente destaca con mayor escala.
+      </p>
+    </div>
+
+    {
+      pasesRecientes.length === 0 ? (
+        <p class="nauka-ui-display mt-8 rounded-3xl border border-dashed border-[#213138]/12 bg-[#F9F8F6]/80 py-8 text-center text-sm text-[#5c6569]">
+          Sin pases recientes.
+        </p>
+      ) : (
+        <div class="relative mt-10 md:mt-12">
+          <div class="absolute bottom-0 left-[15px] top-2 w-px bg-[#213138]/10 md:left-[19px]" aria-hidden="true" />
+          <ul class="space-y-0">
+            {pasesRecientes.map((p, i) => {
+              const isLead = i === 0;
+              const isWarm = i < 3;
+              const nameCls = isLead
+                ? "text-[1.35rem] font-semibold leading-snug text-[#213138] md:text-[1.6rem]"
+                : isWarm
+                  ? "text-lg font-semibold text-[#213138]"
+                  : "text-base font-semibold text-[#213138]/90";
+              const padCls = isLead ? "p-6 md:p-8" : isWarm ? "p-5 md:p-6" : "p-4 md:p-5";
+              const widthCls = isLead ? "max-w-2xl" : isWarm ? "max-w-xl" : "max-w-lg";
+              return (
+                <li class:list={["relative pl-10 md:pl-12", i < pasesRecientes.length - 1 ? "pb-12 md:pb-14" : "pb-2"]}>
+                  <span
+                    class:list={[
+                      "absolute rounded-full border border-[#213138]/20 bg-[#F9F8F6] ring-4 ring-[#F9F8F6]/90",
+                      isLead ? "left-[9px] top-3 size-3 md:left-[13px]" : "left-[10px] top-2.5 size-2.5 md:left-[14px]"
+                    ]}
+                    aria-hidden="true"
+                  />
+                  <article class:list={["nauka-glass-editorial nauka-ui-display transition duration-[400ms] ease-in-out", padCls, widthCls, !isLead && "opacity-[0.94]"]}>
+                    <p class:list={[nameCls]}>{p.visitante_nombre}</p>
+                    <p class="mt-2 text-sm font-medium text-[#5c6569]">
+                      {p.motivo ?? "—"} · {p.estado}
+                      {isSuper && p.complejo_id ? ` · ${p.complejo_id}` : ""}
+                    </p>
+                    <p class="mt-2 text-xs font-medium tracking-wide text-[#5c6569]/90">
+                      {p.solicitante_nombre ?? "—"} · {new Date(p.created_at).toLocaleString("es-MX")}
+                    </p>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )
+    }
+  </section>
+
+  <section class="mt-14 md:mt-20">
+    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div class="max-w-xl">
+        <h2 class="font-display text-2xl tracking-[-0.02em] text-[#213138] md:text-3xl">Actividad en caseta</h2>
+        <p class="nauka-ui-display mt-2 text-sm font-medium text-[#5c6569]">Escaneos, entradas y salidas registrados en bitácora.</p>
+      </div>
+      <a href="/admin/bitacora" class="nauka-btn-primary inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-6 text-sm font-semibold">
         Ver bitácora completa
       </a>
     </div>
 
-    {movimientos.length === 0 ? (
-      <p class="rounded-[20px] border border-dashed border-[#213138]/15 bg-[#FCFBF9] p-6 text-sm leading-relaxed text-[#5c6569]">
-        Aún no hay registros en bitácora para este periodo. Cuando un guardia valide un QR o registre entrada/salida, aparecerán aquí. Comprueba que el guardia tenga el mismo <strong>complejo</strong> en su perfil que los pases (
-        {complejoId}).
-      </p>
-    ) : (
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {movimientos.map((row) => (
-          <a
-            href={`/admin/detalle-movimiento?id=${row.id}`}
-            class:list={[
-              "nauka-card-aero flex flex-col p-4 transition duration-[400ms] ease-in-out hover:-translate-y-0.5",
-              row.resultado === "rechazado" ? "border-[#9a6b5c]/15 bg-gradient-to-br from-[#fdfaf9] to-[#f7f0ec]" : ""
-            ]}
-          >
-            <div class="flex items-start justify-between gap-2">
-              <span class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#5c6569]">{tipoMovimientoLabel(row.tipo_evento)}</span>
-              <span class="text-xs text-[#5c6569]">{new Date(row.created_at).toLocaleString("es-MX")}</span>
-            </div>
-            {isSuper && row.complejo_id && <p class="mt-1 text-xs font-medium text-[#213138]/75">Complejo: {row.complejo_id}</p>}
-            <p class="mt-2 text-lg font-medium text-[#213138]">{row.visitante_nombre ?? "Sin nombre"}</p>
-            <p class="text-sm text-[#5c6569]">
-              {row.resultado === "rechazado" ? "Rechazado" : "Autorizado"}
-              {row.lote_number ? ` · Lote ${row.lote_number}` : ""}
-              {row.razon ? ` · ${row.razon}` : ""}
-            </p>
-            <p class="mt-1 text-xs text-[#5c6569]">
-              Solicitante: {row.solicitante_nombre ?? "—"} · Motivo: {row.motivo ?? "—"}
-            </p>
-          </a>
-        ))}
-      </div>
-    )}
+    {
+      movimientos.length === 0 ? (
+        <p class="nauka-ui-display nauka-glass-editorial p-6 text-sm leading-relaxed text-[#5c6569]">
+          Aún no hay registros en bitácora para este periodo. Cuando un guardia valide un QR o registre entrada o salida, aparecerán aquí. Comprueba que el guardia comparta el mismo{" "}
+          <strong class="font-semibold text-[#213138]">complejo</strong> en su perfil ({complejoId}).
+        </p>
+      ) : (
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {movimientos.map((row) => (
+            <a
+              href={`/admin/detalle-movimiento?id=${row.id}`}
+              class:list={[
+                "nauka-glass-editorial nauka-ui-display flex flex-col p-5 transition duration-[400ms] ease-in-out hover:-translate-y-0.5",
+                row.resultado === "rechazado" ? "bg-[rgba(255,255,255,0.72)]" : ""
+              ]}
+            >
+              <div class="flex items-start justify-between gap-2">
+                <span class="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#5c6569]">{tipoMovimientoLabel(row.tipo_evento)}</span>
+                <span class="text-xs font-medium text-[#5c6569]">{new Date(row.created_at).toLocaleString("es-MX")}</span>
+              </div>
+              {isSuper && row.complejo_id && <p class="mt-1 text-xs font-medium text-[#213138]/70">Complejo: {row.complejo_id}</p>}
+              <p class="mt-3 text-lg font-semibold text-[#213138]">{row.visitante_nombre ?? "Sin nombre"}</p>
+              <p class="mt-1 text-sm font-medium text-[#5c6569]">
+                {row.resultado === "rechazado" ? "Rechazado" : "Autorizado"}
+                {row.lote_number ? ` · Lote ${row.lote_number}` : ""}
+                {row.razon ? ` · ${row.razon}` : ""}
+              </p>
+              <p class="mt-2 text-xs text-[#5c6569]">
+                Solicitante: {row.solicitante_nombre ?? "—"} · Motivo: {row.motivo ?? "—"}
+              </p>
+            </a>
+          ))}
+        </div>
+      )
+    }
   </section>
 
-  <section id="incidentes" class="mt-12 space-y-4 md:mt-16">
-    <h2 class="font-display text-xl text-[#213138] md:text-2xl">Gestión de incidentes</h2>
-    {(incidentes ?? []).length === 0 && <p class="nauka-card-aero p-4 text-sm text-[#5c6569]">Sin incidentes registrados.</p>}
-    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+  <section id="incidentes" class="mt-16 space-y-6 md:mt-20">
+    <h2 class="font-display text-2xl tracking-[-0.02em] text-[#213138] md:text-3xl">Incidentes</h2>
+    {(incidentes ?? []).length === 0 && (
+      <p class="nauka-ui-display nauka-glass-editorial p-5 text-sm text-[#5c6569]">Sin incidentes registrados.</p>
+    )}
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
       {(incidentes ?? []).map((item) => (
-        <article class="nauka-card-aero p-5">
+        <article class="nauka-glass-editorial nauka-ui-display p-6">
           <div class="flex items-center justify-between gap-2">
-            <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#5c6569]">{item.severidad}</p>
-            <p class="text-xs text-[#5c6569]">{new Date(item.created_at).toLocaleString("es-MX")}</p>
+            <p class="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#5c6569]">{item.severidad}</p>
+            <p class="text-xs font-medium text-[#5c6569]">{new Date(item.created_at).toLocaleString("es-MX")}</p>
           </div>
-          <p class="mt-2 text-base font-medium text-[#213138]">{item.descripcion}</p>
-          <p class="mt-1 text-sm text-[#5c6569]">Visitante: {item.visitante_nombre ?? "N/A"} · Estado: {item.estado}</p>
+          <p class="mt-3 text-base font-semibold text-[#213138]">{item.descripcion}</p>
+          <p class="mt-2 text-sm font-medium text-[#5c6569]">
+            Visitante: {item.visitante_nombre ?? "N/A"} · Estado: {item.estado}
+          </p>
         </article>
       ))}
     </div>

@@ -1,6 +1,6 @@
 ---
 /**
- * Área suave tipo "plano arquitectónico" — métricas normalizadas a una sola curva.
+ * Línea de tiempo tipo sismógrafo — trazo fino Oxford, sin relleno tipo Excel.
  */
 interface Props {
   movimientos: number;
@@ -10,52 +10,69 @@ interface Props {
 }
 
 const { movimientos, autorizados, rechazados, incidentes } = Astro.props;
-const raw = [movimientos, autorizados, rechazados, incidentes, movimientos * 0.85];
+
+const series = [
+  { v: movimientos, label: "Movimientos" },
+  { v: autorizados, label: "Autorizados" },
+  { v: rechazados, label: "Rechazados" },
+  { v: incidentes, label: "Incidentes" }
+] as const;
+
+const raw = series.map((s) => s.v);
 const max = Math.max(...raw, 1);
-const w = 400;
-const h = 112;
-const pad = 8;
-const pts = raw.map((v, i) => {
-  const x = pad + (i * (w - 2 * pad)) / (raw.length - 1);
-  const y = h - pad - (v / max) * (h - 2 * pad);
-  return { x, y };
+const w = 560;
+const h = 108;
+const padX = 20;
+const padY = 18;
+const baseline = h * 0.58;
+const amplitude = (h - 2 * padY) * 0.38;
+
+const pts = series.map((s, i) => {
+  const x = padX + (i * (w - 2 * padX)) / (series.length - 1);
+  const ratio = s.v / max;
+  const y = baseline - (ratio - 0.5) * 2 * amplitude;
+  return { x, y, ...s };
 });
-const lineD = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
-const areaD = `${lineD} L ${pts[pts.length - 1].x} ${h - pad} L ${pts[0].x} ${h - pad} Z`;
+
+const lineD = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
 ---
 
-<div class="nauka-card-aero relative overflow-hidden p-5 md:p-6">
-  <p class="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#5c6569]">Flujo silencioso · 24 h</p>
-  <p class="font-display mt-1 text-xl text-[#213138] md:text-2xl">Actividad operativa</p>
-  <svg class="mt-4 w-full" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-    <defs>
-      <linearGradient id="nauka-area-fill" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#213138" stop-opacity="0.09"></stop>
-        <stop offset="100%" stop-color="#213138" stop-opacity="0"></stop>
-      </linearGradient>
-      <linearGradient id="nauka-line-stroke" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#213138" stop-opacity="0.35"></stop>
-        <stop offset="50%" stop-color="#213138" stop-opacity="0.65"></stop>
-        <stop offset="100%" stop-color="#213138" stop-opacity="0.4"></stop>
-      </linearGradient>
-    </defs>
-    <path d={areaD} fill="url(#nauka-area-fill)" class="transition-[d] duration-[400ms] ease-in-out"></path>
+<div class="nauka-glass-editorial px-5 py-6 md:px-8 md:py-8">
+  <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+    <p class="text-[0.6rem] font-semibold uppercase tracking-[0.26em] text-[#5c6569]">Flujo silencioso</p>
+    <p class="nauka-ui-display text-xs font-medium text-[#213138]/55">Trazo de precisión · ventana 24 h</p>
+  </div>
+
+  <svg class="nauka-ui-display mt-5 w-full text-[#213138]" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <line x1={padX} y1={baseline} x2={w - padX} y2={baseline} stroke="currentColor" stroke-opacity="0.14" stroke-width="1" vector-effect="non-scaling-stroke">
+    </line>
     <path
       d={lineD}
       fill="none"
-      stroke="url(#nauka-line-stroke)"
-      stroke-width="1.25"
+      stroke="currentColor"
+      stroke-opacity="0.42"
+      stroke-width="1"
       stroke-linecap="round"
       stroke-linejoin="round"
       vector-effect="non-scaling-stroke"
-      class="transition-[d] duration-[400ms] ease-in-out"
     >
     </path>
+    {
+      pts.map((p) => (
+        <circle cx={p.x} cy={p.y} r="2.75" fill="currentColor" fill-opacity="0.32" stroke="currentColor" stroke-opacity="0.45" stroke-width="0.75">
+        </circle>
+      ))
+    }
   </svg>
-  <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#5c6569]">
-    <span>Mov. {movimientos}</span>
-    <span>Autorizados {autorizados}</span>
-    <span>Rechazados {rechazados}</span>
-    <span>Incidentes {incidentes}</span>
+
+  <div class="nauka-ui-display mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-[0.7rem] text-[#5c6569] sm:grid-cols-4">
+    {
+      pts.map((p) => (
+        <div class="flex flex-col border-t border-[#213138]/[0.08] pt-2">
+          <span class="font-medium text-[#213138]/80">{p.label}</span>
+          <span class="tabular-nums text-[#213138]">{p.v}</span>
+        </div>
+      ))
+    }
   </div>
 </div>
