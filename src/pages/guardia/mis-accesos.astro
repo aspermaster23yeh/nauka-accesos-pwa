@@ -19,6 +19,9 @@ const movimientos =
     : [];
 
 type MovRow = (typeof movimientos)[number];
+function countEvidenciasSalida(row: MovRow): number {
+  return [row.evidencia_storage_path, row.evidencia_storage_path_2, row.evidencia_storage_path_3].filter((p) => p?.trim()).length;
+}
 const salidas = movimientos.filter((r: MovRow) => r.tipo_evento === "salida");
 const entradas = movimientos.filter((r: MovRow) => r.tipo_evento === "entrada");
 ---
@@ -44,7 +47,7 @@ const entradas = movimientos.filter((r: MovRow) => r.tipo_evento === "entrada");
       <li>En el <strong class="text-[#213138]">escáner</strong>, escanea o pega el mismo código del pase del visitante.</li>
       <li>Toca <strong class="text-[#213138]">Salida</strong> (no “Entrada”).</li>
       <li>
-        Sube la <strong class="text-[#213138]">foto de evidencia</strong> de salida (obligatoria): vehículo, portón, etc., según política de caseta.
+        Sube al menos una <strong class="text-[#213138]">foto de evidencia</strong> de salida (obligatoria); puedes agregar hasta dos más (opcionales): vehículo, portón, etc., según política de caseta.
       </li>
       <li>Pulsa <strong class="text-[#213138]">Confirmar salida en caseta</strong>. Ahí se registra el check-out y el pase pasa a usado.</li>
     </ol>
@@ -92,7 +95,7 @@ const entradas = movimientos.filter((r: MovRow) => r.tipo_evento === "entrada");
             </h2>
             {salidas.length === 0 ? (
               <p class="rounded-xl border border-dashed border-[#213138]/15 bg-[#FCFBF9]/80 p-4 text-sm text-[#5c6569]">
-                No hay salidas registradas aún. Usa el escáner en modo <strong class="text-[#213138]">Salida</strong> con evidencia fotográfica para cerrar la visita.
+                No hay salidas registradas aún. Usa el escáner en modo <strong class="text-[#213138]">Salida</strong> con al menos una foto de evidencia (hasta 3) para cerrar la visita.
               </p>
             ) : (
               <div class="space-y-3">
@@ -110,7 +113,9 @@ const entradas = movimientos.filter((r: MovRow) => r.tipo_evento === "entrada");
                       {row.lote_number ?? "—"}
                     </p>
                     <p class="mt-2 text-xs text-[#5c6569]">
-                      {row.evidencia_storage_path ? "Evidencia de salida adjunta." : "Sin ruta de evidencia en registro."}
+                      {countEvidenciasSalida(row) > 0
+                        ? `${countEvidenciasSalida(row)} foto(s) de evidencia adjunta(s).`
+                        : "Sin rutas de evidencia en registro."}
                     </p>
                     {row.razon && <p class="mt-1 text-xs text-[#5c6569]">{row.razon}</p>}
                   </article>

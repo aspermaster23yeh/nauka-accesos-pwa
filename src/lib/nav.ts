@@ -17,6 +17,7 @@ export const adminNav: BottomNavItem[] = [
   { id: "analitica", label: "Analítica", icon: "analytics", href: "/admin/analitica" },
   { id: "actividad", label: "Actividad", icon: "timeline", href: "/admin/actividad" },
   { id: "bitacora", label: "Bitácora", icon: "history", href: "/admin/bitacora" },
+  { id: "evidencias", label: "Evidencias", icon: "photo_camera", href: "/admin/evidencias-salida" },
   { id: "operaciones", label: "Altas", icon: "group_add", href: "/admin/operaciones" },
   { id: "incidentes", label: "Incidentes", icon: "warning", href: "/admin/incidentes" }
 ];

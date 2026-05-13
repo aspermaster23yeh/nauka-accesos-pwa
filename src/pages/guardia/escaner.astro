@@ -50,10 +50,21 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     <a href="/guardia/mis-accesos" class="mt-3 block text-center text-sm font-semibold text-[#3d5c4a] underline underline-offset-2">
       Ver mis accesos en caseta
     </a>
-    <label id="evidence-wrap" class="mt-4 hidden flex-col gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">
-      Evidencia de salida
-      <input id="evidence-input" type="file" accept="image/*" capture="environment" class="text-sm font-normal normal-case tracking-normal" />
-    </label>
+    <div id="evidence-wrap" class="mt-4 hidden flex-col gap-3 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">
+      <span class="block">Fotos de evidencia de salida (1 obligatoria, hasta 3)</span>
+      <label class="flex flex-col gap-1 font-normal normal-case tracking-normal">
+        <span class="text-xs font-semibold text-[#5c6569]">Foto 1 — obligatoria</span>
+        <input id="evidence-input-1" type="file" accept="image/*" capture="environment" class="text-sm" />
+      </label>
+      <label class="flex flex-col gap-1 font-normal normal-case tracking-normal">
+        <span class="text-xs font-semibold text-[#5c6569]">Foto 2 — opcional</span>
+        <input id="evidence-input-2" type="file" accept="image/*" capture="environment" class="text-sm" />
+      </label>
+      <label class="flex flex-col gap-1 font-normal normal-case tracking-normal">
+        <span class="text-xs font-semibold text-[#5c6569]">Foto 3 — opcional</span>
+        <input id="evidence-input-3" type="file" accept="image/*" capture="environment" class="text-sm" />
+      </label>
+    </div>
   </section>
 
   <section class="relative -mx-4 -mt-6 mb-6 h-[45vh] overflow-hidden bg-[#2f3131]">
@@ -201,7 +212,15 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   const visitorNameNode = document.getElementById("visitor-name");
   const lotNode = document.getElementById("lot-number");
   const evidenceWrap = document.getElementById("evidence-wrap");
-  const evidenceInput = document.getElementById("evidence-input");
+  const evidenceInputIds = ["evidence-input-1", "evidence-input-2", "evidence-input-3"] as const;
+  const getSalidaEvidenceFiles = (): File[] => {
+    const files: File[] = [];
+    for (const id of evidenceInputIds) {
+      const el = document.getElementById(id);
+      if (el instanceof HTMLInputElement && el.files?.[0]) files.push(el.files[0]);
+    }
+    return files;
+  };
   const resolvedComplejoId = scannerRoot?.getAttribute("data-complejo-id") ?? "complejo-1";
 
   let accessType = "entrada";
@@ -415,7 +434,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       if (reasonNode) {
         reasonNode.textContent =
           result.status === "authorized"
-            ? "Invitación verificada. Check-in: elige Entrada y confirma. Check-out: elige Salida, sube la foto de evidencia y confirma salida."
+            ? "Invitación verificada. Check-in: elige Entrada y confirma. Check-out: elige Salida, sube al menos una foto de evidencia (hasta 3) y confirma salida."
             : `Motivo: ${result.razon ?? "Token no encontrado o inválido"}`;
       }
       setCameraStatus(result.status === "authorized" ? "Código válido." : "Código no válido.", result.status !== "authorized");
@@ -547,33 +566,39 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       window.location.href = `/guardia/acceso-denegado?reason=${reason}`;
       return;
     }
-    let evidenciaPath = "";
+    const evidenciaPaths: string[] = [];
     if (accessType === "salida") {
-      const fileInput = evidenceInput instanceof HTMLInputElement ? evidenceInput : null;
-      const file = fileInput?.files?.[0];
-      if (!file) {
-        alert("La salida requiere una foto de evidencia.");
+      const files = getSalidaEvidenceFiles();
+      if (files.length === 0) {
+        alert("La salida requiere al menos una foto de evidencia (foto 1).");
         return;
       }
-      const fd = new FormData();
-      fd.append("file", file);
-      let uploadRes: Response;
-      try {
-        uploadRes = await fetch("/api/guardia/subir-evidencia", { method: "POST", body: fd });
-      } catch {
-        alert("Sin conexión. No se pudo subir la evidencia. Intenta cuando haya red.");
+      if (files.length > 3) {
+        alert("Máximo 3 fotos de evidencia.");
         return;
       }
-      if (!uploadRes.ok) {
-        const payload = await uploadRes.json().catch(() => ({}));
-        alert(payload.error ?? "No se pudo subir la evidencia.");
-        return;
-      }
-      const uploadPayload = await uploadRes.json().catch(() => ({}));
-      evidenciaPath = typeof uploadPayload.path === "string" ? uploadPayload.path : "";
-      if (!evidenciaPath) {
-        alert("No se recibió la ruta de evidencia.");
-        return;
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("file", file);
+        let uploadRes: Response;
+        try {
+          uploadRes = await fetch("/api/guardia/subir-evidencia", { method: "POST", body: fd });
+        } catch {
+          alert("Sin conexión. No se pudo subir la evidencia. Intenta cuando haya red.");
+          return;
+        }
+        if (!uploadRes.ok) {
+          const payload = await uploadRes.json().catch(() => ({}));
+          alert(payload.error ?? "No se pudo subir la evidencia.");
+          return;
+        }
+        const uploadPayload = await uploadRes.json().catch(() => ({}));
+        const p = typeof uploadPayload.path === "string" ? uploadPayload.path : "";
+        if (!p) {
+          alert("No se recibió la ruta de evidencia.");
+          return;
+        }
+        evidenciaPaths.push(p);
       }
     }
     let response: Response;
@@ -584,14 +609,14 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
         body: JSON.stringify({
           token: currentToken,
           tipoEvento: accessType,
-          evidenciaStoragePath: evidenciaPath || undefined
+          ...(accessType === "salida" && evidenciaPaths.length > 0 ? { evidenciaStoragePaths: evidenciaPaths } : {})
         })
       });
     } catch {
       await enqueueGuardMovement({
         token: currentToken,
         tipoEvento: accessType === "salida" ? "salida" : "entrada",
-        evidenciaStoragePath: evidenciaPath || null
+        evidenciaStoragePaths: accessType === "salida" ? evidenciaPaths : []
       });
       setCameraStatus("Movimiento en cola local. Sincroniza cuando haya red.");
       void updateQueueUi();
@@ -606,7 +631,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       await enqueueGuardMovement({
         token: currentToken,
         tipoEvento: accessType === "salida" ? "salida" : "entrada",
-        evidenciaStoragePath: evidenciaPath || null
+        evidenciaStoragePaths: accessType === "salida" ? evidenciaPaths : []
       });
       setCameraStatus("Movimiento en cola local. Sincroniza cuando haya red.");
       void updateQueueUi();

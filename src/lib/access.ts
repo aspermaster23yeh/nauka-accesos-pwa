@@ -192,7 +192,7 @@ export async function getBitacoraScope(input: BitacoraScopeFilters) {
   let statement = supabase
     .from("bitacora_accesos")
     .select(
-      "id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, token_qr, guardia_id, evidencia_storage_path, complejo_id"
+      "id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, token_qr, guardia_id, evidencia_storage_path, evidencia_storage_path_2, evidencia_storage_path_3, complejo_id"
     )
     .order("created_at", { ascending: false })
     .limit(cap);
@@ -268,7 +268,7 @@ export async function getBitacoraByGuardiaCaseta(input: {
   const cap = Math.min(Math.max(input.limit ?? 80, 1), 200);
   const { data, error } = await supabase
     .from("bitacora_accesos")
-    .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, evidencia_storage_path")
+    .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, evidencia_storage_path, evidencia_storage_path_2, evidencia_storage_path_3")
     .eq("complejo_id", input.complejoId)
     .eq("guardia_id", input.guardiaId)
     .in("tipo_evento", ["entrada", "salida"])
@@ -386,19 +386,40 @@ export async function getActivePassesForSolicitante(ctx: AuthContext) {
   return data ?? [];
 }
 
+function normalizeEvidenciaSalidaPaths(paths: string[] | null | undefined): [string | null, string | null, string | null] {
+  const cleaned = (paths ?? [])
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  return [cleaned[0] ?? null, cleaned[1] ?? null, cleaned[2] ?? null];
+}
+
 export async function registerAccessMovement(input: {
   accessToken: string;
   guardiaId: string;
   complejoId: string;
   tokenQr: string;
   tipoEvento: "entrada" | "salida";
+  /** @deprecated Usar evidenciaStoragePaths */
   evidenciaStoragePath?: string | null;
+  /** 1 obligatoria, hasta 3 rutas en bucket evidencias_salida (salida). */
+  evidenciaStoragePaths?: string[] | null;
 }) {
   const supabase = getSupabaseServiceClient();
   const normalizedToken = input.tokenQr.trim().toLowerCase();
 
-  if (input.tipoEvento === "salida" && !input.evidenciaStoragePath?.trim()) {
-    throw new Error("La salida requiere una foto de evidencia.");
+  let evidencias: [string | null, string | null, string | null] = [null, null, null];
+  if (input.tipoEvento === "salida") {
+    const fromArray =
+      Array.isArray(input.evidenciaStoragePaths) && input.evidenciaStoragePaths.length > 0
+        ? input.evidenciaStoragePaths
+        : input.evidenciaStoragePath?.trim()
+          ? [input.evidenciaStoragePath.trim()]
+          : [];
+    evidencias = normalizeEvidenciaSalidaPaths(fromArray);
+    if (!evidencias[0]) {
+      throw new Error("La salida requiere al menos una foto de evidencia (puedes agregar hasta 3).");
+    }
   }
 
   const { data: pass, error } = await supabase
@@ -434,7 +455,9 @@ export async function registerAccessMovement(input: {
       tipo_evento: input.tipoEvento,
       resultado: "autorizado",
       origen: "caseta",
-      evidencia_storage_path: input.evidenciaStoragePath?.trim() ?? null
+      evidencia_storage_path: input.tipoEvento === "salida" ? evidencias[0] : null,
+      evidencia_storage_path_2: input.tipoEvento === "salida" ? evidencias[1] : null,
+      evidencia_storage_path_3: input.tipoEvento === "salida" ? evidencias[2] : null
     })
     .select("id")
     .single();
@@ -459,6 +482,44 @@ export async function registerAccessMovement(input: {
     const { error: updateError } = await supabase.from("pases_acceso").update({ estado: "usado" }).eq("id", pass.id);
     if (updateError) throw new Error(updateError.message);
   }
+}
+
+export type SalidaEvidenciaAdminRow = {
+  id: string;
+  created_at: string;
+  visitante_nombre: string | null;
+  lote_number: string | null;
+  complejo_id: string;
+  guardia_id: string | null;
+  evidencia_storage_path: string | null;
+  evidencia_storage_path_2: string | null;
+  evidencia_storage_path_3: string | null;
+  pase_id: string | null;
+};
+
+/** Salidas con al menos una evidencia en storage (panel admin). */
+export async function getSalidasConEvidenciaAdmin(limit = 120): Promise<SalidaEvidenciaAdminRow[]> {
+  const supabase = getSupabaseServiceClient();
+  const cap = Math.min(Math.max(limit, 1), 250);
+  const { data, error } = await supabase
+    .from("bitacora_accesos")
+    .select(
+      "id, created_at, visitante_nombre, lote_number, complejo_id, guardia_id, evidencia_storage_path, evidencia_storage_path_2, evidencia_storage_path_3, pase_id, tipo_evento"
+    )
+    .eq("tipo_evento", "salida")
+    .order("created_at", { ascending: false })
+    .limit(Math.min(cap * 3, 500));
+  if (error) {
+    console.error("[getSalidasConEvidenciaAdmin]", error.message);
+    return [];
+  }
+  const filtered = (data ?? []).filter((r) => {
+    const p = (r as SalidaEvidenciaAdminRow).evidencia_storage_path?.trim();
+    const p2 = (r as SalidaEvidenciaAdminRow).evidencia_storage_path_2?.trim();
+    const p3 = (r as SalidaEvidenciaAdminRow).evidencia_storage_path_3?.trim();
+    return Boolean(p || p2 || p3);
+  });
+  return filtered.slice(0, cap) as SalidaEvidenciaAdminRow[];
 }
 
 export type CasetaNotificationRow = {
