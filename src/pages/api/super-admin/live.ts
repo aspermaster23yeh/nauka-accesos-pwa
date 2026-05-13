@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { isPlatformAdmin } from "../../../lib/admin-access";
-import { getLotesWithResponsables, getSuperAdminActivityEnriched } from "../../../lib/access";
+import { getLotesWithResponsables, getRecentCasetaNotifications, getSuperAdminActivityEnriched } from "../../../lib/access";
 
 export const prerender = false;
 
@@ -10,12 +10,17 @@ export const GET: APIRoute = async ({ locals }) => {
   }
 
   try {
-    const [{ movements, lotKpis }, lotesCatalog] = await Promise.all([getSuperAdminActivityEnriched(180), getLotesWithResponsables()]);
+    const [{ movements, lotKpis }, lotesCatalog, casetaNotifications] = await Promise.all([
+      getSuperAdminActivityEnriched(180),
+      getLotesWithResponsables(),
+      getRecentCasetaNotifications(40)
+    ]);
     return new Response(
       JSON.stringify({
         movements,
         lotKpis,
         lotesCatalog,
+        casetaNotifications,
         generatedAt: new Date().toISOString()
       }),
       { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }

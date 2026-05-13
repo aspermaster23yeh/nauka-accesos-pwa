@@ -195,9 +195,14 @@ export async function createVisitorPass(input: {
   lotNumber?: string | null;
   creadoPor: string;
   accessToken: string;
+  /** Si se omite, Postgres genera el id. Para subir archivos antes del insert, pásalo explícito. */
+  paseId?: string;
+  visitanteFotoStoragePath: string;
+  visitanteIneStoragePath: string;
 }) {
   const supabase = getSupabaseServiceClient();
   const tokenQr = crypto.randomUUID();
+  const paseId = input.paseId?.trim() || undefined;
   const expiry = new Date(input.venceEn);
   if (Number.isNaN(expiry.getTime())) {
     throw new Error("La fecha de expiración es inválida.");
@@ -212,23 +217,30 @@ export async function createVisitorPass(input: {
     throw new Error(`La fecha/hora del pase no puede superar ${MAX_PASS_WINDOW_DAYS} dias.`);
   }
 
-  const { data, error } = await supabase
-    .from("pases_acceso")
-    .insert({
-      token_qr: tokenQr,
-      complejo_id: input.complejoId,
-      visitante_nombre: input.visitanteNombre,
-      motivo: input.motivo,
-      vence_en: expiry.toISOString(),
-      estado: "vigente",
-      telefono_destino: input.telefonoDestino ?? null,
-      notas: input.notas ?? null,
-      lote_number: input.lotNumber ?? null,
-      creado_por: input.creadoPor,
-      tipo_acceso: "entrada"
-    })
-    .select("token_qr, id, vence_en")
-    .single();
+  const foto = input.visitanteFotoStoragePath.trim();
+  const ine = input.visitanteIneStoragePath.trim();
+  if (!foto || !ine) {
+    throw new Error("Se requieren foto del visitante e imagen de INE.");
+  }
+
+  const row: Record<string, unknown> = {
+    token_qr: tokenQr,
+    complejo_id: input.complejoId,
+    visitante_nombre: input.visitanteNombre,
+    motivo: input.motivo,
+    vence_en: expiry.toISOString(),
+    estado: "vigente",
+    telefono_destino: input.telefonoDestino ?? null,
+    notas: input.notas ?? null,
+    lote_number: input.lotNumber ?? null,
+    creado_por: input.creadoPor,
+    tipo_acceso: "entrada",
+    visitante_foto_storage_path: foto,
+    visitante_ine_storage_path: ine
+  };
+  if (paseId) row.id = paseId;
+
+  const { data, error } = await supabase.from("pases_acceso").insert(row).select("token_qr, id, vence_en").single();
 
   if (error) {
     throw new Error(error.message);
@@ -279,27 +291,70 @@ export async function registerAccessMovement(input: {
     .maybeSingle();
   if (error || !pass) throw new Error("Pase no encontrado.");
 
-  const { error: bitacoraError } = await supabase.from("bitacora_accesos").insert({
+  const { data: bitacoraRow, error: bitacoraError } = await supabase
+    .from("bitacora_accesos")
+    .insert({
+      complejo_id: input.complejoId,
+      pase_id: pass.id,
+      token_qr: pass.token_qr ?? normalizedToken,
+      guardia_id: input.guardiaId,
+      visitante_nombre: pass.visitante_nombre,
+      lote_number: pass.lote_number,
+      tipo_evento: input.tipoEvento,
+      resultado: "autorizado",
+      origen: "caseta",
+      evidencia_storage_path: input.evidenciaStoragePath?.trim() ?? null
+    })
+    .select("id")
+    .single();
+  if (bitacoraError || !bitacoraRow?.id) {
+    console.error("[bitacora] insert movimiento:", bitacoraError?.message);
+    throw new Error(bitacoraError?.message ?? "No se pudo registrar la bitácora.");
+  }
+
+  const { error: notifError } = await supabase.from("notificaciones_caseta").insert({
     complejo_id: input.complejoId,
-    pase_id: pass.id,
-    token_qr: pass.token_qr ?? normalizedToken,
-    guardia_id: input.guardiaId,
+    tipo: input.tipoEvento,
+    bitacora_id: bitacoraRow.id,
     visitante_nombre: pass.visitante_nombre,
     lote_number: pass.lote_number,
-    tipo_evento: input.tipoEvento,
-    resultado: "autorizado",
-    origen: "caseta",
-    evidencia_storage_path: input.evidenciaStoragePath?.trim() ?? null
+    guardia_id: input.guardiaId
   });
-  if (bitacoraError) {
-    console.error("[bitacora] insert movimiento:", bitacoraError.message);
-    throw new Error(bitacoraError.message);
+  if (notifError) {
+    console.error("[notificaciones_caseta]", notifError.message);
   }
 
   if (input.tipoEvento === "salida") {
     const { error: updateError } = await supabase.from("pases_acceso").update({ estado: "usado" }).eq("id", pass.id);
     if (updateError) throw new Error(updateError.message);
   }
+}
+
+export type CasetaNotificationRow = {
+  id: string;
+  complejo_id: string;
+  tipo: "entrada" | "salida";
+  bitacora_id: string | null;
+  visitante_nombre: string | null;
+  lote_number: string | null;
+  guardia_id: string | null;
+  created_at: string;
+};
+
+/** Últimas alertas de caseta para panel admin (service role). */
+export async function getRecentCasetaNotifications(limit = 30): Promise<CasetaNotificationRow[]> {
+  const supabase = getSupabaseServiceClient();
+  const cap = Math.min(Math.max(limit, 1), 100);
+  const { data, error } = await supabase
+    .from("notificaciones_caseta")
+    .select("id, complejo_id, tipo, bitacora_id, visitante_nombre, lote_number, guardia_id, created_at")
+    .order("created_at", { ascending: false })
+    .limit(cap);
+  if (error) {
+    console.error("[notificaciones_caseta] list:", error.message);
+    return [];
+  }
+  return (data ?? []) as CasetaNotificationRow[];
 }
 
 export async function getAdminMetrics(ctx: AuthContext) {

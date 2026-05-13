@@ -11,7 +11,7 @@ interface Props {
 const { title, leftIcon = "arrow_back", leftHref = "#", rightIcon, rightHref = "#", rightButtonId } = Astro.props;
 ---
 
-<header class="nauka-glass-nav sticky top-0 z-40 flex items-center justify-between px-4 py-3">
+<header class="nauka-glass-nav sticky top-0 z-[60] flex items-center justify-between px-4 py-3">
   <a
     href={leftHref}
     class="grid h-10 w-10 place-items-center rounded-full text-[#213138] transition hover:bg-[#213138]/[0.06]"
@@ -25,6 +25,9 @@ const { title, leftIcon = "arrow_back", leftHref = "#", rightIcon, rightHref = "
         <button
           id={rightButtonId}
           type="button"
+          aria-label="Abrir menú"
+          aria-expanded="false"
+          aria-controls="sidebar-panel"
           class="grid h-10 w-10 place-items-center rounded-full text-[#213138] transition hover:bg-[#213138]/[0.06]"
         >
           <span class="material-symbols-outlined">{rightIcon}</span>

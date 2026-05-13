@@ -211,6 +211,25 @@ function tipoMovimientoLabel(t: string | null | undefined) {
     />
   </section>
 
+  <section class="mt-12 md:mt-16" aria-label="Alertas de caseta">
+    <div
+      id="caseta-alerts-banner"
+      class="mb-3 hidden rounded-2xl border border-[#3d5c4a]/25 bg-[rgba(61,92,74,0.1)] px-4 py-3 text-sm font-semibold text-[#2d4a3a]"
+      role="status"
+    >
+      Nuevo movimiento registrado en caseta (entrada o salida). Revisa la lista siguiente.
+    </div>
+    <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 class="font-display text-xl tracking-[-0.02em] text-[#213138] md:text-2xl">Notificaciones · caseta</h2>
+        <p class="nauka-ui-display text-xs font-medium text-[#5c6569] md:text-sm">
+          Entradas y salidas autorizadas por el escáner de guardia (se actualiza con el panel en vivo).
+        </p>
+      </div>
+    </div>
+    <ul id="caseta-alerts-list" class="grid grid-cols-1 gap-2 md:grid-cols-2"></ul>
+  </section>
+
   <section id="panel-vivo" class="mt-12 md:mt-16">
     <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
@@ -734,6 +753,52 @@ function tipoMovimientoLabel(t: string | null | undefined) {
     }
   }
 
+  let casetaNotifInitialized = false;
+  const knownCasetaNotifIds = new Set();
+
+  function renderCasetaAlerts(rows) {
+    const list = document.getElementById("caseta-alerts-list");
+    const banner = document.getElementById("caseta-alerts-banner");
+    if (!list) return;
+    let newlyAdded = false;
+    for (const r of rows) {
+      if (casetaNotifInitialized && r.id && !knownCasetaNotifIds.has(r.id)) newlyAdded = true;
+      if (r.id) knownCasetaNotifIds.add(r.id);
+    }
+    casetaNotifInitialized = true;
+    if (banner) banner.classList.toggle("hidden", !newlyAdded);
+
+    if (!rows.length) {
+      list.innerHTML =
+        '<li class="nauka-ui-display col-span-full rounded-2xl border border-dashed border-[#213138]/10 bg-white/70 px-4 py-3 text-sm text-[#5c6569]">Sin alertas recientes de caseta.</li>';
+      return;
+    }
+    list.innerHTML = rows
+      .slice(0, 12)
+      .map((r) => {
+        const t = r.tipo === "salida" ? "Salida" : "Entrada";
+        const dot = r.tipo === "salida" ? "bg-[#9a6b5c]" : "bg-[#3d5c4a]";
+        const time = new Date(r.created_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
+        const detail = esc(r.visitante_nombre ?? "Visitante");
+        const lote = r.lote_number ? ` · Lote ${esc(r.lote_number)}` : "";
+        const comp = esc(r.complejo_id ?? "");
+        const href = r.bitacora_id
+          ? `/admin/detalle-movimiento?id=${encodeURIComponent(r.bitacora_id)}`
+          : "#";
+        return `<li>
+        <a href="${href}" class="flex items-start gap-3 rounded-2xl border border-[#213138]/[0.06] bg-white/85 px-4 py-3 transition hover:border-[#213138]/12 hover:bg-white">
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot}"></span>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#5c6569]">${t} · ${comp}</p>
+            <p class="nauka-ui-display mt-1 text-sm font-semibold text-[#213138]">${detail}${lote}</p>
+            <p class="mt-1 text-xs text-[#7a7e82]">${esc(time)}</p>
+          </div>
+        </a>
+      </li>`;
+      })
+      .join("");
+  }
+
   async function refreshLive() {
     const res = await fetch("/api/super-admin/live");
     const label = document.getElementById("live-updated-label");
@@ -744,6 +809,7 @@ function tipoMovimientoLabel(t: string | null | undefined) {
     const data = await res.json();
     renderMovements(data.movements ?? []);
     renderLoteKpis(data.lotKpis ?? [], data.lotesCatalog ?? []);
+    renderCasetaAlerts(data.casetaNotifications ?? []);
     if (label && data.generatedAt) {
       const t = new Date(data.generatedAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
       label.textContent = `Sincronizado ${t}`;

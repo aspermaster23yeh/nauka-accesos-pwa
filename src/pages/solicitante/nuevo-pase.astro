@@ -34,6 +34,32 @@ import AppLayout from "../../layouts/AppLayout.astro";
         <textarea id="visit-notes" rows="3" class="nauka-input-lux min-h-[5.5rem] resize-y text-lg" placeholder="Ej. Proveedor autorizado por mantenimiento, trae 3 paquetes."></textarea>
       </label>
 
+      <label class="block">
+        <span class="nauka-label-lux">Foto del visitante (rostro)</span>
+        <input
+          id="visitor-face"
+          name="fotoVisitante"
+          type="file"
+          accept="image/*"
+          capture="user"
+          class="nauka-input-lux py-3 text-base file:mr-3 file:rounded-xl file:border-0 file:bg-[#213138]/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#213138]"
+        />
+        <p class="mt-1 text-xs font-medium text-[#5c6569]">Requerido para validar identidad en caseta.</p>
+      </label>
+
+      <label class="block">
+        <span class="nauka-label-lux">Foto del INE (identificación)</span>
+        <input
+          id="visitor-ine"
+          name="fotoIne"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          class="nauka-input-lux py-3 text-base file:mr-3 file:rounded-xl file:border-0 file:bg-[#213138]/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#213138]"
+        />
+        <p class="mt-1 text-xs font-medium text-[#5c6569]">Debe verse legible el frente del INE.</p>
+      </label>
+
       <button id="generate-pass" type="button" class="nauka-btn-primary flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-xl font-semibold">
         <span class="material-symbols-outlined">qr_code_2</span>
         Generar pase
@@ -68,6 +94,8 @@ import AppLayout from "../../layouts/AppLayout.astro";
   const previewPassLink = document.getElementById("preview-pass-link");
   const visitDate = document.getElementById("visit-date");
   const visitTime = document.getElementById("visit-time");
+  const visitorFace = document.getElementById("visitor-face");
+  const visitorIne = document.getElementById("visitor-ine");
 
   let currentCode = "";
   let currentShareUrl = "";
@@ -89,6 +117,14 @@ import AppLayout from "../../layouts/AppLayout.astro";
       alert("Completa nombre, fecha y hora.");
       return;
     }
+    const faceInput = visitorFace instanceof HTMLInputElement ? visitorFace : null;
+    const ineInput = visitorIne instanceof HTMLInputElement ? visitorIne : null;
+    const faceFile = faceInput?.files?.[0];
+    const ineFile = ineInput?.files?.[0];
+    if (!faceFile || !ineFile) {
+      alert("Debes adjuntar la foto del rostro del visitante y la foto del INE.");
+      return;
+    }
     const selected = new Date(venceEn);
     const now = new Date();
     const maxAllowed = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -100,15 +136,17 @@ import AppLayout from "../../layouts/AppLayout.astro";
       alert("La fecha/hora no puede superar 30 dias.");
       return;
     }
+    const fd = new FormData();
+    fd.append("visitanteNombre", name);
+    fd.append("motivo", reason);
+    fd.append("venceEn", venceEn);
+    fd.append("notas", notes);
+    fd.append("fotoVisitante", faceFile);
+    fd.append("fotoIne", ineFile);
+
     const response = await fetch("/api/solicitante/pases", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        visitanteNombre: name,
-        motivo: reason,
-        venceEn,
-        notas: notes
-      })
+      body: fd
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));

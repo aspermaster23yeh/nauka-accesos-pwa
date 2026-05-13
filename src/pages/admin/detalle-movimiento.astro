@@ -1,5 +1,6 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
+import { adminNav } from "../../lib/nav";
 import { getSupabaseServiceClient } from "../../lib/supabase";
 const id = Astro.url.searchParams.get("id");
 const supabase = getSupabaseServiceClient();
@@ -33,6 +34,7 @@ const { data: guardiaProfile } = row?.guardia_id
   wide
   title="Detalle de Movimiento - Nauka Nayarit"
   topBar={{ title: "Nauka Nayarit", leftIcon: "arrow_back", leftHref: "/admin/bitacora", rightIcon: "more_vert", rightHref: "#" }}
+  navItems={adminNav}
 >
   <div class={`mb-5 flex items-center gap-2 ${row?.resultado === "rechazado" ? "text-[#93000a]" : "text-[#006d36]"}`}>
     <span class="material-symbols-outlined">check_circle</span>

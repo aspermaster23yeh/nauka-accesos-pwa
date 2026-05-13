@@ -111,6 +111,9 @@ const roleLinks =
             </div>
             <aside
               id="sidebar-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menú de cuenta"
               class="nauka-glass-sidebar fixed right-0 top-0 z-[80] flex h-full w-[84%] max-w-[330px] translate-x-full flex-col p-5 shadow-[-16px_0_48px_rgba(33,49,56,0.08)] transition-transform duration-[400ms] ease-in-out"
             >
               <div class="mb-5 flex items-start justify-between">
@@ -176,8 +179,8 @@ const roleLinks =
     </div>
     {
       isAuthenticated && (
-        <script is:inline>
-          {`(() => {
+        <script>
+          (function () {
             const openButton = document.getElementById("sidebar-open");
             const closeButton = document.getElementById("sidebar-close");
             const panel = document.getElementById("sidebar-panel");
@@ -187,20 +190,25 @@ const roleLinks =
             const openSidebar = () => {
               panel.classList.remove("translate-x-full");
               overlay.classList.remove("opacity-0", "pointer-events-none");
+              openButton.setAttribute("aria-expanded", "true");
             };
 
             const closeSidebar = () => {
               panel.classList.add("translate-x-full");
               overlay.classList.add("opacity-0", "pointer-events-none");
+              openButton.setAttribute("aria-expanded", "false");
             };
 
-            openButton.addEventListener("click", openSidebar);
+            openButton.addEventListener("click", (e) => {
+              e.preventDefault();
+              openSidebar();
+            });
             closeButton.addEventListener("click", closeSidebar);
             overlay.addEventListener("click", closeSidebar);
             window.addEventListener("keydown", (event) => {
               if (event.key === "Escape") closeSidebar();
             });
-          })();`}
+          })();
         </script>
       )
     }
