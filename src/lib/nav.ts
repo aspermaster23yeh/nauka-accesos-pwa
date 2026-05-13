@@ -8,6 +8,7 @@ export const solicitanteNav: BottomNavItem[] = [
 
 export const guardNav: BottomNavItem[] = [
   { id: "seguridad", label: "Seguridad", icon: "shield", href: "/guardia/escaner" },
+  { id: "mis-accesos", label: "Mis accesos", icon: "history", href: "/guardia/mis-accesos" },
   { id: "rechazados", label: "Rechazados", icon: "gpp_bad", href: "/guardia/acceso-denegado" }
 ];
 

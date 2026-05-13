@@ -1,5 +1,5 @@
 import type { AppRole } from "./supabase";
-import { getSupabaseServiceClient } from "./supabase";
+import { getSupabaseServerClient, getSupabaseServiceClient } from "./supabase";
 
 const MIN_PASS_LEAD_MINUTES = 1;
 const MAX_PASS_WINDOW_DAYS = 30;
@@ -255,6 +255,30 @@ export async function getBitacoraScope(input: BitacoraScopeFilters) {
 
 export async function getBitacoraRowsForPaseId(paseId: string, limit = 300) {
   return getBitacoraScope({ paseId, allComplejos: true, limit });
+}
+
+/** Movimientos de caseta (entrada/salida) registrados por un guardia, con JWT (RLS). */
+export async function getBitacoraByGuardiaCaseta(input: {
+  accessToken: string;
+  guardiaId: string;
+  complejoId: string;
+  limit?: number;
+}) {
+  const supabase = getSupabaseServerClient(input.accessToken);
+  const cap = Math.min(Math.max(input.limit ?? 80, 1), 200);
+  const { data, error } = await supabase
+    .from("bitacora_accesos")
+    .select("id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, pase_id, evidencia_storage_path")
+    .eq("complejo_id", input.complejoId)
+    .eq("guardia_id", input.guardiaId)
+    .in("tipo_evento", ["entrada", "salida"])
+    .order("created_at", { ascending: false })
+    .limit(cap);
+  if (error) {
+    console.error("[getBitacoraByGuardiaCaseta]", error.message);
+    return [];
+  }
+  return data ?? [];
 }
 
 export async function getRecentPassesForComplejo(complejoId: string | null, limit = 12) {

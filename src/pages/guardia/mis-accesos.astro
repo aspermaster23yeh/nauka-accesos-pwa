@@ -1,0 +1,163 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import { guardNav } from "../../lib/nav";
+import { getBitacoraByGuardiaCaseta } from "../../lib/access";
+
+const user = Astro.locals.user;
+const token = Astro.locals.accessToken;
+const profile = Astro.locals.profile;
+const complejoId = profile?.complejo_id ?? "complejo-1";
+
+const movimientos =
+  user && token && profile?.role === "guardia"
+    ? await getBitacoraByGuardiaCaseta({
+        accessToken: token,
+        guardiaId: user.id,
+        complejoId,
+        limit: 100
+      }).catch(() => [])
+    : [];
+
+type MovRow = (typeof movimientos)[number];
+const salidas = movimientos.filter((r: MovRow) => r.tipo_evento === "salida");
+const entradas = movimientos.filter((r: MovRow) => r.tipo_evento === "entrada");
+---
+
+<AppLayout
+  title="Mis accesos - Nauka Nayarit"
+  topBar={{ title: "Mis accesos", leftIcon: "arrow_back", leftHref: "/guardia/escaner", rightIcon: "notifications", rightHref: "#" }}
+  navItems={guardNav}
+  activeNav="mis-accesos"
+>
+  <p class="-mt-5 mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">Caseta · tu complejo</p>
+  <h1 class="font-display text-2xl text-[#213138] md:text-3xl">Movimientos que registraste</h1>
+  <p class="mt-2 text-sm leading-relaxed text-[#5c6569]">
+    Aquí ves las <strong class="text-[#213138]">entradas</strong> (check-in) y las <strong class="text-[#213138]">salidas</strong> (check-out) que confirmaste con tu usuario.
+  </p>
+
+  <section class="mt-5 rounded-2xl border border-[#3d5c4a]/20 bg-[rgba(61,92,74,0.08)] p-4">
+    <p class="flex items-center gap-2 font-semibold text-[#213138]">
+      <span class="material-symbols-outlined text-[#3d5c4a]">info</span>
+      ¿Cuándo es el check-out (salida)?
+    </p>
+    <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-[#5c6569]">
+      <li>En el <strong class="text-[#213138]">escáner</strong>, escanea o pega el mismo código del pase del visitante.</li>
+      <li>Toca <strong class="text-[#213138]">Salida</strong> (no “Entrada”).</li>
+      <li>
+        Sube la <strong class="text-[#213138]">foto de evidencia</strong> de salida (obligatoria): vehículo, portón, etc., según política de caseta.
+      </li>
+      <li>Pulsa <strong class="text-[#213138]">Confirmar salida en caseta</strong>. Ahí se registra el check-out y el pase pasa a usado.</li>
+    </ol>
+    <a
+      href="/guardia/escaner?type=salida"
+      class="nauka-btn-primary mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold"
+    >
+      <span class="material-symbols-outlined text-lg">logout</span>
+      Ir a escáner en modo salida
+    </a>
+  </section>
+
+  {
+    movimientos.length > 0 && (
+      <div class="mt-6 flex gap-4 text-center text-sm">
+        <div class="flex-1 rounded-xl border border-[#213138]/10 bg-white/90 py-3">
+          <p class="text-2xl font-bold text-[#3d5c4a]">{salidas.length}</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.08em] text-[#5c6569]">Salidas</p>
+        </div>
+        <div class="flex-1 rounded-xl border border-[#213138]/10 bg-white/90 py-3">
+          <p class="text-2xl font-bold text-[#213138]">{entradas.length}</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.08em] text-[#5c6569]">Entradas</p>
+        </div>
+      </div>
+    )
+  }
+
+  <div class="mt-8 space-y-8">
+    {
+      movimientos.length === 0 ? (
+        <div class="nauka-card-aero rounded-2xl border border-dashed border-[#213138]/15 p-6 text-center">
+          <span class="material-symbols-outlined text-4xl text-[#5c6569]">history</span>
+          <p class="mt-3 font-medium text-[#213138]">Aún no hay registros</p>
+          <p class="mt-1 text-sm text-[#5c6569]">Cuando confirmes entradas o salidas en el escáner, aparecerán aquí.</p>
+          <a href="/guardia/escaner" class="nauka-btn-primary mt-4 inline-flex h-11 items-center justify-center rounded-2xl px-6 text-sm font-semibold">
+            Ir al escáner
+          </a>
+        </div>
+      ) : (
+        <>
+          <div>
+            <h2 class="mb-3 flex items-center gap-2 font-display text-xl text-[#213138]">
+              <span class="material-symbols-outlined text-[#3d5c4a]">logout</span>
+              Salidas (check-out)
+            </h2>
+            {salidas.length === 0 ? (
+              <p class="rounded-xl border border-dashed border-[#213138]/15 bg-[#FCFBF9]/80 p-4 text-sm text-[#5c6569]">
+                No hay salidas registradas aún. Usa el escáner en modo <strong class="text-[#213138]">Salida</strong> con evidencia fotográfica para cerrar la visita.
+              </p>
+            ) : (
+              <div class="space-y-3">
+                {salidas.map((row: MovRow) => (
+                  <article class="nauka-card-aero border-l-4 border-l-[#3d5c4a] border border-[#213138]/[0.08] p-4 shadow-sm">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="rounded-full bg-[#3d5c4a]/15 px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-[#2d4a3a]">
+                        Check-out
+                      </span>
+                      <span class="text-xs font-semibold text-[#5c6569]">{row.resultado ?? "—"}</span>
+                    </div>
+                    <p class="mt-2 font-display text-xl text-[#213138]">{row.visitante_nombre ?? "Sin nombre"}</p>
+                    <p class="mt-1 text-sm text-[#5c6569]">
+                      {new Date(row.created_at).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })} · Lote{" "}
+                      {row.lote_number ?? "—"}
+                    </p>
+                    <p class="mt-2 text-xs text-[#5c6569]">
+                      {row.evidencia_storage_path ? "Evidencia de salida adjunta." : "Sin ruta de evidencia en registro."}
+                    </p>
+                    {row.razon && <p class="mt-1 text-xs text-[#5c6569]">{row.razon}</p>}
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h2 class="mb-3 flex items-center gap-2 font-display text-xl text-[#213138]">
+              <span class="material-symbols-outlined text-[#213138]">login</span>
+              Entradas (check-in)
+            </h2>
+            {entradas.length === 0 ? (
+              <p class="rounded-xl border border-dashed border-[#213138]/15 bg-[#FCFBF9]/80 p-4 text-sm text-[#5c6569]">
+                No hay entradas en este listado. Regístralas con el escáner en modo <strong class="text-[#213138]">Entrada</strong>.
+              </p>
+            ) : (
+              <div class="space-y-3">
+                {entradas.map((row: MovRow) => (
+                  <article class="nauka-card-aero border border-[#213138]/[0.06] p-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="rounded-full bg-[#213138]/10 px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-[#213138]">
+                        Check-in
+                      </span>
+                      <span class="text-xs font-semibold text-[#5c6569]">{row.resultado ?? "—"}</span>
+                    </div>
+                    <p class="mt-2 font-display text-xl text-[#213138]">{row.visitante_nombre ?? "Sin nombre"}</p>
+                    <p class="mt-1 text-sm text-[#5c6569]">
+                      {new Date(row.created_at).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })} · Lote{" "}
+                      {row.lote_number ?? "—"}
+                    </p>
+                    {row.razon && <p class="mt-2 text-xs text-[#5c6569]">{row.razon}</p>}
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )
+    }
+  </div>
+
+  <a
+    href="/guardia/escaner"
+    class="mt-8 flex h-12 w-full items-center justify-center rounded-2xl border border-[#213138]/10 bg-[#FCFBF9]/90 text-sm font-semibold text-[#213138] transition hover:bg-white"
+  >
+    Volver al escáner
+  </a>
+</AppLayout>
