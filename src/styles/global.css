@@ -2,38 +2,236 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Nauka — Hospitality-Grade Precision */
 :root {
-  --bg: #ffffff;
-  --surface: #f6f8fb;
-  --surface-2: #eef2f7;
-  --text: #0f172a;
-  --muted: #334155;
-  --success: #166534;
-  --danger: #b91c1c;
+  --nauka-bone: #fcfbf9;
+  --nauka-bone-deep: #f5f2ed;
+  --nauka-oxford: #213138;
+  --nauka-stone: #5c6569;
+  --nauka-mist: rgba(33, 49, 56, 0.04);
+  --nauka-forest: #3d5c4a;
+  --nauka-forest-soft: rgba(61, 92, 74, 0.1);
+  --nauka-terracotta: #9a6b5c;
+  --nauka-terracotta-soft: rgba(154, 107, 92, 0.12);
+  --nauka-transition: 400ms ease-in-out;
+  --nauka-glass: rgba(252, 251, 249, 0.72);
+  --nauka-shadow-aero: 0 24px 40px rgba(33, 49, 56, 0.04);
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--nauka-bone);
+    color: var(--nauka-oxford);
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0.01em;
+  }
+
+  .font-display {
+    font-family: "Playfair Display", "Georgia", serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity, filter, backdrop-filter;
+    transition-duration: 400ms;
+    transition-timing-function: ease-in-out;
+  }
 }
 
 .lens-section {
-  background: var(--surface);
+  background: var(--nauka-bone-deep);
 }
 
 .lens-section-muted {
-  background: var(--surface-2);
+  background: rgba(245, 242, 237, 0.85);
 }
 
 .sunlight-text {
-  color: var(--text);
-  letter-spacing: 0.01em;
+  color: var(--nauka-oxford);
 }
 
 .sunlight-subtext {
-  color: var(--muted);
+  color: var(--nauka-stone);
+}
+
+/* Glass navigation / panels */
+.nauka-glass-nav {
+  background: var(--nauka-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(33, 49, 56, 0.06);
+}
+
+.nauka-glass-dock {
+  background: rgba(252, 251, 249, 0.78);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(33, 49, 56, 0.05);
+  box-shadow: 0 -8px 32px rgba(33, 49, 56, 0.03);
+}
+
+.nauka-glass-sidebar {
+  background: rgba(252, 251, 249, 0.88);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+}
+
+/* Aero data cards — float over bone */
+.nauka-card-aero {
+  border-radius: 20px;
+  background: linear-gradient(165deg, #ffffff 0%, #f7f5f2 48%, #faf8f5 100%);
+  box-shadow: var(--nauka-shadow-aero);
+  border: 1px solid rgba(33, 49, 56, 0.04);
+  transition: transform var(--nauka-transition), box-shadow var(--nauka-transition);
+}
+
+.nauka-card-aero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 28px 48px rgba(33, 49, 56, 0.055);
+}
+
+/* Premium invitation (guard / visitor authorized) */
+.nauka-invitation {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(152deg, #fefdfb 0%, #f3ece4 42%, #faf7f2 100%);
+  border: 1px solid rgba(33, 49, 56, 0.06);
+  box-shadow: 0 16px 48px rgba(33, 49, 56, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: background var(--nauka-transition), box-shadow var(--nauka-transition), border-color var(--nauka-transition);
+}
+
+.nauka-invitation::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 248, 235, 0.45) 52%, transparent 64%);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.nauka-invitation[data-state="authorized"] {
+  background: linear-gradient(168deg, #fffefb 0%, #f0e8de 35%, #faf5ee 65%, #f6efe6 100%);
+  border-color: rgba(61, 92, 74, 0.12);
+  box-shadow: 0 20px 56px rgba(33, 49, 56, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.nauka-invitation[data-state="denied"] {
+  background: linear-gradient(168deg, #fdfaf9 0%, #f5ebe8 50%, #faf6f4 100%);
+  border-color: rgba(154, 107, 92, 0.15);
+}
+
+.nauka-invitation[data-state="idle"] {
+  background: linear-gradient(165deg, #fdfcfa 0%, #f4f1ec 100%);
+}
+
+.nauka-invitation-inner {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem 1.25rem;
+}
+
+.nauka-invitation-ribbon {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--nauka-stone);
+  margin-bottom: 0.5rem;
+}
+
+/* Minimal-lux inputs: no fill, underline grows on focus */
+.nauka-input-lux {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(33, 49, 56, 0.12);
+  border-radius: 0;
+  padding: 0.75rem 0 0.5rem;
+  font-size: 1rem;
+  color: var(--nauka-oxford);
+  outline: none;
+  transition: border-color var(--nauka-transition), box-shadow var(--nauka-transition);
+  box-shadow: 0 1px 0 0 transparent;
+}
+
+.nauka-input-lux:focus {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 0 rgba(33, 49, 56, 0.35), 0 8px 24px -8px rgba(33, 49, 56, 0.08);
+}
+
+.nauka-input-lux::placeholder {
+  color: rgba(92, 101, 105, 0.55);
+}
+
+.nauka-label-lux {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nauka-stone);
+  margin-bottom: 0.25rem;
+}
+
+/* Organic status chip */
+.nauka-chip-ok {
+  background: var(--nauka-forest-soft);
+  color: var(--nauka-forest);
+  border: 1px solid rgba(61, 92, 74, 0.15);
+}
+
+.nauka-chip-warn {
+  background: var(--nauka-terracotta-soft);
+  color: #6b4f45;
+  border: 1px solid rgba(154, 107, 92, 0.2);
+}
+
+.nauka-chip-neutral {
+  background: rgba(33, 49, 56, 0.06);
+  color: var(--nauka-oxford);
+  border: 1px solid rgba(33, 49, 56, 0.06);
+}
+
+/* Primary CTA — oxford, soft elevation */
+.nauka-btn-primary {
+  background: linear-gradient(180deg, #2a3d47 0%, var(--nauka-oxford) 100%);
+  color: #fcfbf9;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(33, 49, 56, 0.18);
+  transition: transform var(--nauka-transition), box-shadow var(--nauka-transition), opacity var(--nauka-transition);
+}
+
+.nauka-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 36px rgba(33, 49, 56, 0.22);
+}
+
+/* Login / hero glass panel */
+.nauka-hero-glass {
+  background: rgba(252, 251, 249, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.nauka-login-card {
+  background: rgba(252, 251, 249, 0.94);
+  backdrop-filter: blur(12px);
+  border-radius: 28px;
+  border: 1px solid rgba(33, 49, 56, 0.06);
+  box-shadow: 0 32px 64px rgba(33, 49, 56, 0.12);
 }

@@ -11,7 +11,7 @@ export const GET: APIRoute = async ({ locals }) => {
   const service = getSupabaseServiceClient();
   const { data, error } = await service
     .from("profiles")
-    .select("id, full_name, lot_number, complejo_id, role, onboarding_status, ine_storage_path, terms_accepted_at, created_at")
+    .select("id, full_name, lot_number, complejo_id, role, onboarding_status, ine_storage_path, photo_storage_path, terms_accepted_at, created_at")
     .order("created_at", { ascending: false })
     .limit(80);
 

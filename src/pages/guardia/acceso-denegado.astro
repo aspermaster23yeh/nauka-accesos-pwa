@@ -4,24 +4,27 @@ import loginBackground from "../../../491461670_17919450432084004_82919598860845
 const reason = Astro.url.searchParams.get("reason") ?? "Codigo expirado";
 ---
 
-<AppLayout title="Acceso Denegado - Nauka Nayarit" bodyClass="bg-[#2f3131] text-[#1a1c1c]">
+<AppLayout title="Acceso denegado - Nauka Nayarit">
   <section class="fixed inset-0 z-0">
-    <img src={loginBackground.src} alt="fondo" class="h-full w-full object-cover blur-md brightness-50" />
-    <div class="absolute inset-0 bg-[#ba1a1a]/20"></div>
+    <img src={loginBackground.src} alt="fondo" class="h-full w-full object-cover blur-md brightness-[0.55]" />
+    <div class="absolute inset-0 bg-[#213138]/40 backdrop-blur-[2px]"></div>
   </section>
 
   <div class="relative z-10 flex min-h-[82vh] items-center">
-    <section class="w-full rounded-[14px] border-2 border-[#ba1a1a]/20 bg-white p-6 text-center shadow-[0_0_40px_rgba(186,26,26,0.16)]">
-      <div class="mx-auto mb-5 grid h-24 w-24 place-items-center rounded-full bg-[#ffdad6] text-[#93000a]">
-        <span class="material-symbols-outlined text-5xl">warning</span>
+    <section class="nauka-card-aero w-full border border-[#9a6b5c]/15 p-6 text-center">
+      <div class="mx-auto mb-5 grid h-24 w-24 place-items-center rounded-full border border-[#9a6b5c]/20 bg-[#9a6b5c]/[0.12] text-[#6b4f45]">
+        <span class="material-symbols-outlined text-5xl">gpp_maybe</span>
       </div>
-      <h1 class="text-6xl font-extrabold uppercase tracking-tight text-[#ba1a1a]">Acceso no autorizado</h1>
-      <p class="mt-3 text-lg font-bold uppercase tracking-[0.08em] text-[#5f6368]">Razon: {reason}</p>
-      <div class="mt-6 space-y-3">
-        <a href="/guardia/escaner" class="flex h-14 w-full items-center justify-center rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-2xl font-semibold text-white">
-          Escanear Nuevo Codigo
+      <h1 class="font-display text-3xl text-[#213138] md:text-4xl">Acceso no autorizado</h1>
+      <p class="mt-3 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">Motivo</p>
+      <p class="mt-1 text-lg font-medium text-[#6b4f45]">{reason}</p>
+      <div class="mt-8 space-y-3">
+        <a href="/guardia/escaner" class="nauka-btn-primary flex h-14 w-full items-center justify-center rounded-2xl text-lg font-semibold">
+          Escanear otro código
         </a>
-        <button class="h-14 w-full rounded-xl bg-[#e8e8e8] text-2xl font-semibold text-[#213138]">Reportar Incidente</button>
+        <button type="button" class="h-14 w-full rounded-2xl border border-[#213138]/10 bg-[#213138]/[0.04] text-lg font-semibold text-[#213138] transition duration-[400ms] ease-in-out hover:bg-[#213138]/[0.07]">
+          Reportar incidente
+        </button>
       </div>
     </section>
   </div>

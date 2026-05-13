@@ -10,22 +10,32 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   topBar={{ title: "Nauka Nayarit", leftIcon: "person", leftHref: "#", rightIcon: "notifications", rightHref: "#" }}
   navItems={guardNav}
 >
-  <section class="mb-4 rounded-xl bg-white p-2 shadow-[0_6px_18px_rgba(26,28,28,0.05)]" data-complejo-id={complejoId}>
-    <div class="mb-2 rounded-lg bg-[#f3f3f4] p-2">
-      <button id="camera-permission" class="h-10 w-full rounded-lg bg-[#213138] text-sm font-semibold text-white">Activar camara</button>
-      <p id="camera-status" class="mt-2 text-center text-xs font-semibold text-[#5f6368]">Camara no iniciada</p>
+  <section class="nauka-card-aero mb-4 p-3 md:p-4" data-complejo-id={complejoId}>
+    <div class="mb-3 rounded-2xl border border-[#213138]/[0.06] bg-[#FCFBF9]/60 p-3">
+      <button
+        id="camera-permission"
+        class="nauka-btn-primary h-10 w-full rounded-2xl text-sm font-semibold"
+      >
+        Activar cámara
+      </button>
+      <p id="camera-status" class="mt-2 text-center text-xs font-medium text-[#5c6569]">Cámara no iniciada</p>
     </div>
     <div class="grid grid-cols-2 gap-2">
-      <button data-access-type="entrada" class="access-toggle h-11 rounded-lg bg-[#213138] text-base font-semibold text-white">Entrada</button>
-      <button data-access-type="salida" class="access-toggle h-11 rounded-lg bg-[#eeeeee] text-base font-semibold text-[#213138]">Salida</button>
+      <button data-access-type="entrada" class="access-toggle h-11 rounded-2xl text-base font-semibold">Entrada</button>
+      <button data-access-type="salida" class="access-toggle h-11 rounded-2xl text-base font-semibold">Salida</button>
     </div>
-    <div class="mt-2 flex gap-2">
-      <input id="manual-token" placeholder="Pegar token QR" class="h-11 flex-1 rounded-lg bg-[#f3f3f4] px-3 text-sm outline-none" />
-      <button id="validate-token" class="h-11 rounded-lg bg-[#213138] px-4 text-sm font-semibold text-white">Validar</button>
+    <div class="mt-3 flex gap-2">
+      <input
+        id="manual-token"
+        type="text"
+        placeholder="Token o enlace del pase"
+        class="nauka-input-lux h-11 flex-1 text-sm"
+      />
+      <button id="validate-token" class="nauka-btn-primary h-11 shrink-0 rounded-2xl px-4 text-sm font-semibold">Validar</button>
     </div>
-    <label id="evidence-wrap" class="mt-3 hidden flex-col gap-1 text-xs font-semibold text-[#5f6368]">
-      Foto de evidencia (obligatoria en salida)
-      <input id="evidence-input" type="file" accept="image/*" capture="environment" class="text-sm font-normal" />
+    <label id="evidence-wrap" class="mt-4 hidden flex-col gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">
+      Evidencia de salida
+      <input id="evidence-input" type="file" accept="image/*" capture="environment" class="text-sm font-normal normal-case tracking-normal" />
     </label>
   </section>
 
@@ -38,29 +48,41 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
         <div class="absolute right-0 top-0 h-12 w-12 rounded-tr-lg border-r-4 border-t-4 border-white/85"></div>
         <div class="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-white/85"></div>
         <div class="absolute bottom-0 right-0 h-12 w-12 rounded-br-lg border-b-4 border-r-4 border-white/85"></div>
-        <div class="absolute left-0 top-1/2 h-1 w-full bg-[#83fba5] shadow-[0_0_12px_2px_rgba(131,251,165,0.45)]"></div>
+        <div class="absolute left-0 top-1/2 h-px w-full bg-[#3d5c4a]/35 shadow-[0_0_20px_rgba(61,92,74,0.25)]"></div>
       </div>
     </div>
   </section>
 
-  <section id="access-card" class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
-    <div id="status-chip" class="mb-5 flex items-center gap-2 rounded-xl bg-[#eeeeee] p-3 text-[#213138]">
-      <span class="material-symbols-outlined">qr_code_scanner</span>
-      <h2 id="status-title" class="text-5xl font-bold tracking-[-0.01em]">Listo para escanear</h2>
+  <section id="nauka-invitation" class="nauka-invitation" data-state="idle">
+    <div class="nauka-invitation-inner">
+      <p class="nauka-invitation-ribbon">Nauka Nayarit · Acceso</p>
+      <div id="status-chip" class="nauka-chip-neutral mb-4 inline-flex items-center gap-2 rounded-full px-3 py-2">
+        <span class="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+        <span id="status-chip-label" class="text-xs font-semibold tracking-wide">En espera</span>
+      </div>
+      <h2 id="status-title" class="font-display text-[1.75rem] leading-tight text-[#213138] md:text-[2.125rem]">Listo para escanear</h2>
+      <div class="my-5 h-px w-full bg-gradient-to-r from-transparent via-[#213138]/12 to-transparent"></div>
+      <p class="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#5c6569]">Visitante</p>
+      <p id="visitor-name" class="mt-1 text-2xl font-medium text-[#213138] md:text-3xl">Sin lectura</p>
+      <p class="mt-5 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#5c6569]">Destino</p>
+      <p id="lot-number" class="font-display mt-1 text-3xl text-[#213138] md:text-4xl">—</p>
+      <p id="validation-reason" class="mt-4 text-sm leading-relaxed text-[#5c6569]">Escanea un código o pega el enlace del pase.</p>
+      <a
+        id="access-action"
+        href="#"
+        class="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#213138]/10 bg-[#213138]/[0.04] text-lg font-semibold text-[#213138] transition duration-[400ms] ease-in-out"
+      >
+        <span class="material-symbols-outlined">login</span>
+        <span id="action-label">Esperando código válido</span>
+      </a>
+      <a
+        id="review-link"
+        href="/admin/bitacora"
+        class="mt-3 flex h-12 w-full items-center justify-center rounded-2xl border border-[#213138]/[0.08] text-sm font-semibold text-[#213138] transition hover:bg-[#213138]/[0.04]"
+      >
+        Ver bitácora
+      </a>
     </div>
-    <p class="text-sm font-bold uppercase tracking-[0.08em] text-[#5f6368]">Nombre</p>
-    <p id="visitor-name" class="mt-1 text-5xl font-semibold text-[#213138]">Sin lectura</p>
-    <hr class="my-4 border-[#eeeeee]" />
-    <p class="text-sm font-bold uppercase tracking-[0.08em] text-[#5f6368]">Destino</p>
-    <p id="lot-number" class="mt-1 text-6xl font-extrabold tracking-[-0.02em] text-[#213138]">Sin destino</p>
-    <p id="validation-reason" class="mt-3 text-sm font-semibold text-[#5f6368]">Escanea un QR para validar contra la base de datos.</p>
-    <a id="access-action" href="#" class="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#5f6368] to-[#43474a] text-2xl font-semibold text-white">
-      <span class="material-symbols-outlined">login</span>
-      <span id="action-label">Esperando QR válido</span>
-    </a>
-    <a id="review-link" href="/admin/bitacora" class="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-[#eeeeee] text-base font-semibold text-[#213138]">
-      Ver bitácora
-    </a>
   </section>
 </AppLayout>
 
@@ -89,6 +111,9 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   let qrState = "invalido";
   let currentToken = "";
   let scanIntervalId = 0;
+  let hasValidated = false;
+  const invitationEl = document.getElementById("nauka-invitation");
+  const chipLabel = document.getElementById("status-chip-label");
 
   const normalizeType = (value) => (value === "salida" ? "salida" : "entrada");
   const extractToken = (rawValue) => {
@@ -129,7 +154,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   const setCameraStatus = (message, isError = false) => {
     if (!cameraStatus) return;
     cameraStatus.textContent = message;
-    cameraStatus.className = `mt-2 text-center text-xs font-semibold ${isError ? "text-[#93000a]" : "text-[#5f6368]"}`;
+    cameraStatus.className = `mt-2 text-center text-xs font-medium ${isError ? "text-[#9a6b5c]" : "text-[#5c6569]"}`;
   };
 
   const validateTokenOnServer = async (token) => {
@@ -148,22 +173,24 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     currentToken = normalizedToken;
     try {
       const result = await validateTokenOnServer(normalizedToken);
+      hasValidated = true;
       qrState = result.status === "authorized" ? "valido" : "invalido";
       if (visitorNameNode && result.visitanteNombre) visitorNameNode.textContent = result.visitanteNombre;
       if (lotNode && result.lote) lotNode.textContent = `Lote ${result.lote}`;
       if (result.status !== "authorized") {
         if (visitorNameNode) visitorNameNode.textContent = result.visitanteNombre ?? "Sin autorización";
-        if (lotNode) lotNode.textContent = result.lote ? `Lote ${result.lote}` : "Sin destino";
+        if (lotNode) lotNode.textContent = result.lote ? `Lote ${result.lote}` : "—";
       }
       if (reasonNode) {
         reasonNode.textContent =
-          result.status === "authorized" ? "QR detectado correctamente. Listo para registrar movimiento." : `Motivo: ${result.razon ?? "Token no encontrado o inválido"}`;
+          result.status === "authorized" ? "Invitación verificada. Puede registrar el movimiento en caseta." : `Motivo: ${result.razon ?? "Token no encontrado o inválido"}`;
       }
-      setCameraStatus(result.status === "authorized" ? "QR válido detectado." : "QR inválido detectado.", result.status !== "authorized");
+      setCameraStatus(result.status === "authorized" ? "Código válido." : "Código no válido.", result.status !== "authorized");
     } catch {
+      hasValidated = true;
       qrState = "invalido";
       if (reasonNode) reasonNode.textContent = "Error de validación. Intenta de nuevo.";
-      setCameraStatus("No se pudo validar el QR.", true);
+      setCameraStatus("No se pudo validar.", true);
     }
     render();
   };
@@ -192,7 +219,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   const requestCamera = async () => {
     if (!(cameraVideo instanceof HTMLVideoElement)) return;
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraStatus("Tu navegador no soporta camara.", true);
+      setCameraStatus("Tu navegador no soporta cámara.", true);
       return;
     }
     try {
@@ -207,14 +234,14 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       if (cameraFallback instanceof HTMLImageElement) {
         cameraFallback.classList.add("hidden");
       }
-      setCameraStatus("Camara activa (modo escaner).");
+      setCameraStatus("Cámara activa (modo escáner).");
       if (cameraPermission) {
-        cameraPermission.textContent = "Camara activa";
-        cameraPermission.className = "h-10 w-full rounded-lg bg-[#006d36] text-sm font-semibold text-white";
+        cameraPermission.textContent = "Cámara activa";
+        cameraPermission.className = "nauka-btn-primary h-10 w-full rounded-2xl text-sm font-semibold";
       }
       startRealtimeScanner();
     } catch {
-      setCameraStatus("Permiso denegado o camara no disponible.", true);
+      setCameraStatus("Permiso denegado o cámara no disponible.", true);
     }
   };
 
@@ -267,7 +294,9 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   const render = () => {
     accessButtons.forEach((button) => {
       const active = button.getAttribute("data-access-type") === accessType;
-      button.className = `access-toggle h-11 rounded-lg text-base font-semibold ${active ? "bg-[#213138] text-white" : "bg-[#eeeeee] text-[#213138]"}`;
+      button.className = `access-toggle h-11 rounded-2xl text-base font-semibold transition duration-[400ms] ease-in-out ${
+        active ? "nauka-btn-primary text-[#FCFBF9]" : "border border-[#213138]/[0.08] bg-[#FCFBF9]/80 text-[#213138] hover:bg-white"
+      }`;
     });
 
     if (!actionLabel || !statusTitle || !statusChip || !accessAction) return;
@@ -275,24 +304,55 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       evidenceWrap.classList.toggle("hidden", accessType !== "salida");
       evidenceWrap.classList.toggle("flex", accessType === "salida");
     }
-    actionLabel.textContent = accessType === "entrada" ? "Registrar entrada" : "Registrar salida";
-    if (qrState === "valido") {
-      statusTitle.textContent = "Visitante Autorizado";
-      statusChip.className = "mb-5 flex items-center gap-2 rounded-xl bg-[#83fba5]/20 p-3 text-[#006d36]";
+    const state = !hasValidated ? "idle" : qrState === "valido" ? "authorized" : "denied";
+    invitationEl?.setAttribute("data-state", state);
+
+    if (visitorNameNode) {
+      visitorNameNode.className =
+        qrState === "valido" && hasValidated
+          ? "font-display mt-1 text-3xl leading-tight text-[#213138] md:text-[2.25rem]"
+          : "mt-1 text-2xl font-medium text-[#213138] md:text-3xl";
+    }
+
+    if (chipLabel) {
+      chipLabel.textContent = !hasValidated ? "En espera" : qrState === "valido" ? "Invitación válida" : "No autorizado";
+    }
+
+    const chipIcon = statusChip.querySelector(".material-symbols-outlined");
+    if (chipIcon) {
+      chipIcon.textContent = state === "authorized" ? "verified" : state === "denied" ? "gpp_maybe" : "qr_code_scanner";
+      chipIcon.className = "material-symbols-outlined text-[20px]";
+    }
+
+    if (qrState === "valido" && hasValidated) {
+      actionLabel.textContent = accessType === "entrada" ? "Registrar entrada" : "Registrar salida";
+      statusTitle.textContent = "Visitante autorizado";
+      statusChip.className = "nauka-chip-ok mb-4 inline-flex items-center gap-2 rounded-full px-3 py-2";
       accessAction.className =
-        "mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#006d36] to-[#005227] text-2xl font-semibold text-white";
+        "nauka-btn-primary mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-lg font-semibold transition duration-[400ms] ease-in-out";
       if (reviewLink instanceof HTMLAnchorElement) {
         reviewLink.href = "/admin/bitacora?q=autorizado";
         reviewLink.textContent = "Ir a revisión de aceptados";
       }
-    } else {
+    } else if (hasValidated) {
+      actionLabel.textContent = "Ver motivo en caseta";
       statusTitle.textContent = "Acceso no autorizado";
-      statusChip.className = "mb-5 flex items-center gap-2 rounded-xl bg-[#ffdad6] p-3 text-[#93000a]";
+      statusChip.className = "nauka-chip-warn mb-4 inline-flex items-center gap-2 rounded-full px-3 py-2";
       accessAction.className =
-        "mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#93000a] to-[#ba1a1a] text-2xl font-semibold text-white";
+        "mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#9a6b5c]/25 bg-[#9a6b5c]/[0.08] text-lg font-semibold text-[#6b4f45] transition duration-[400ms] ease-in-out";
       if (reviewLink instanceof HTMLAnchorElement) {
         reviewLink.href = "/admin/bitacora?q=rechazado";
         reviewLink.textContent = "Ir a revisión de rechazados";
+      }
+    } else {
+      actionLabel.textContent = "Esperando código válido";
+      statusTitle.textContent = "Listo para escanear";
+      statusChip.className = "nauka-chip-neutral mb-4 inline-flex items-center gap-2 rounded-full px-3 py-2";
+      accessAction.className =
+        "mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#213138]/10 bg-[#213138]/[0.04] text-lg font-semibold text-[#213138] transition duration-[400ms] ease-in-out";
+      if (reviewLink instanceof HTMLAnchorElement) {
+        reviewLink.href = "/admin/bitacora";
+        reviewLink.textContent = "Ver bitácora";
       }
     }
     syncUrlFromState();

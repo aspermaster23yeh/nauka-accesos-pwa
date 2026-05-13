@@ -19,7 +19,7 @@ const navMax = wide ? "max-w-[430px] md:max-w-6xl lg:max-w-7xl" : "max-w-[430px]
 
 <nav
   class:list={[
-    "fixed bottom-0 left-1/2 z-50 flex h-20 w-full -translate-x-1/2 items-center justify-around border-t border-white/70 bg-white/90 px-2 backdrop-blur-xl",
+    "nauka-glass-dock fixed bottom-0 left-1/2 z-50 flex h-[4.75rem] w-full -translate-x-1/2 items-center justify-around px-2",
     navMax
   ]}
 >
@@ -29,11 +29,12 @@ const navMax = wide ? "max-w-[430px] md:max-w-6xl lg:max-w-7xl" : "max-w-[430px]
       return (
         <a
           href={item.href}
-          class={`flex w-20 flex-col items-center justify-center rounded-xl px-2 py-2 text-[10px] font-bold uppercase tracking-[0.08em] transition ${
-            isActive ? "bg-[#eeeeee] text-[#213138]" : "text-[#7a7e82] hover:text-[#213138]"
-          }`}
+          class:list={[
+            "flex w-[4.5rem] flex-col items-center justify-center rounded-2xl px-2 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition duration-[400ms] ease-in-out",
+            isActive ? "bg-[#213138]/[0.08] text-[#213138]" : "text-[#5c6569] hover:text-[#213138]"
+          ]}
         >
-          <span class="material-symbols-outlined mb-1">{item.icon}</span>
+          <span class="material-symbols-outlined mb-1 text-[22px]">{item.icon}</span>
           <span>{item.label}</span>
         </a>
       );

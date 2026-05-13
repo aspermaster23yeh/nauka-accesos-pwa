@@ -41,11 +41,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
+    // secure solo en producción: en http://localhost el navegador ignora cookies Secure y la sesión "no carga".
     cookies.set("sb-access-token", data.session.access_token, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
-      secure: true,
+      secure: import.meta.env.PROD,
       maxAge: data.session.expires_in
     });
 

@@ -20,53 +20,53 @@ const lotTitle = Astro.locals.profile?.lot_number ?? "A-22";
   pageTitle={`Lote ${lotTitle}`}
   navItems={solicitanteNav}
 >
-  <p class="-mt-5 mb-10 text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Panel de Solicitante</p>
+  <p class="-mt-5 mb-10 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">Panel de solicitante</p>
 
   <a
     href="/solicitante/nuevo-pase"
-    class="mb-10 flex h-24 w-full items-center justify-center gap-3 rounded-[14px] bg-gradient-to-b from-[#213138] to-[#37474f] px-5 text-3xl font-semibold text-white shadow-[0_14px_28px_rgba(26,28,28,0.18)]"
+    class="nauka-btn-primary mb-10 flex h-24 w-full items-center justify-center gap-3 rounded-3xl px-5 text-xl font-semibold sm:text-2xl"
   >
     <span class="material-symbols-outlined text-4xl">add</span>
-    <span class="text-3xl">Crear Nuevo Pase de Acceso</span>
+    <span>Crear nuevo pase de acceso</span>
   </a>
 
   <section id="pases-activos" class="space-y-4">
-    <h2 class="text-5xl font-bold tracking-[-0.02em] text-[#213138]">Pases Activos</h2>
-    <div class="grid grid-cols-2 gap-2 rounded-xl bg-[#eeeeee] p-1">
-      <button data-pass-filter="todos" class="pass-filter h-10 rounded-lg bg-[#213138] text-sm font-semibold uppercase tracking-[0.08em] text-white">Todos</button>
-      <button data-pass-filter="visita" class="pass-filter h-10 rounded-lg bg-transparent text-sm font-semibold uppercase tracking-[0.08em] text-[#213138]">Solo Visitas</button>
+    <h2 class="font-display text-4xl tracking-tight text-[#213138] md:text-[2.75rem]">Pases activos</h2>
+    <div class="grid grid-cols-2 gap-2 rounded-2xl border border-[#213138]/[0.06] bg-[#FCFBF9]/80 p-1 backdrop-blur-md">
+      <button data-pass-filter="todos" class="pass-filter h-10 rounded-xl text-sm font-semibold uppercase tracking-[0.08em]">Todos</button>
+      <button data-pass-filter="visita" class="pass-filter h-10 rounded-xl text-sm font-semibold uppercase tracking-[0.08em]">Solo visitas</button>
     </div>
 
     {
       activePasses.length === 0 ? (
-        <article class="rounded-[14px] bg-white p-5 text-center shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
-          <div class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-[#eeeeee] text-[#5f6368]">
+        <article class="nauka-card-aero p-5 text-center">
+          <div class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-[#213138]/[0.06] text-[#5c6569]">
             <span class="material-symbols-outlined">badge</span>
           </div>
-          <p class="text-xl font-semibold text-[#213138]">Aun no tienes pases activos</p>
-          <p class="mt-1 text-sm text-[#5f6368]">Crea tu primer pase para compartirlo por WhatsApp.</p>
-          <a href="/solicitante/nuevo-pase" class="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#213138] px-4 text-sm font-semibold text-white">
+          <p class="font-display text-xl text-[#213138]">Aún no tienes pases activos</p>
+          <p class="mt-1 text-sm text-[#5c6569]">Crea tu primer pase para compartirlo por WhatsApp.</p>
+          <a href="/solicitante/nuevo-pase" class="nauka-btn-primary mt-4 inline-flex h-11 items-center justify-center rounded-2xl px-6 text-sm font-semibold">
             Crear pase
           </a>
         </article>
       ) : (
         activePasses.map((pass) => (
-          <article data-pass-type={(pass.motivo ?? "visita").toLowerCase()} class="relative rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
-            <span class="absolute left-0 top-0 h-full w-1 rounded-l-[14px] bg-[#0a8d4f]"></span>
-            <div class="flex items-start gap-4 pl-1">
-              <div class="grid h-12 w-12 place-items-center rounded-full bg-[#83fba5]/25 text-[#006d36]">
+          <article data-pass-type={(pass.motivo ?? "visita").toLowerCase()} class="nauka-card-aero relative p-5">
+            <span class="absolute left-0 top-0 h-full w-1 rounded-l-[20px] bg-[#3d5c4a]/35"></span>
+            <div class="flex items-start gap-4 pl-2">
+              <div class="grid h-12 w-12 place-items-center rounded-full border border-[#3d5c4a]/15 bg-[rgba(61,92,74,0.1)] text-[#3d5c4a]">
                 <span class="material-symbols-outlined">badge</span>
               </div>
               <div class="flex-1">
-                <p class="text-4xl font-semibold text-[#213138]">{pass.visitante_nombre}</p>
-                <p class="mt-1 text-xl text-[#5f6368]">
+                <p class="font-display text-3xl text-[#213138] md:text-4xl">{pass.visitante_nombre}</p>
+                <p class="mt-1 text-lg text-[#5c6569]">
                   {new Date(pass.vence_en).toLocaleString("es-MX", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })} · {(pass.motivo ?? "VISITA").toUpperCase()}
                 </p>
                 <div class="mt-4 flex gap-3">
-                  <a href={`/pase/${encodeURIComponent(pass.token_qr)}?type=entrada`} class="flex-1 rounded-xl bg-[#eeeeee] px-4 py-3 text-center text-2xl font-semibold text-[#213138]">
+                  <a href={`/pase/${encodeURIComponent(pass.token_qr)}?type=entrada`} class="flex-1 rounded-2xl border border-[#213138]/[0.08] bg-[#FCFBF9]/90 px-4 py-3 text-center text-lg font-semibold text-[#213138] transition duration-[400ms] ease-in-out hover:bg-white">
                     Ver QR
                   </a>
-                  <button data-share-token={pass.token_qr} class="share-pass grid w-12 place-items-center rounded-xl bg-[#25D366]/10 text-[#075E54]">
+                  <button data-share-token={pass.token_qr} class="share-pass grid w-12 place-items-center rounded-2xl border border-[#3d5c4a]/12 bg-[rgba(61,92,74,0.08)] text-[#2d4a3a] transition duration-[400ms] ease-in-out hover:bg-[rgba(61,92,74,0.14)]">
                     <span class="material-symbols-outlined">chat</span>
                   </button>
                 </div>
@@ -87,8 +87,8 @@ const lotTitle = Astro.locals.profile?.lot_number ?? "A-22";
   const renderFilter = () => {
     filterButtons.forEach((button) => {
       const selected = button.getAttribute("data-pass-filter") === activeFilter;
-      button.className = `pass-filter h-10 rounded-lg text-sm font-semibold uppercase tracking-[0.08em] ${
-        selected ? "bg-[#213138] text-white" : "bg-transparent text-[#213138]"
+      button.className = `pass-filter h-10 rounded-xl text-sm font-semibold uppercase tracking-[0.08em] transition duration-[400ms] ease-in-out ${
+        selected ? "nauka-btn-primary text-[#FCFBF9]" : "bg-transparent text-[#213138] hover:bg-[#213138]/[0.04]"
       }`;
     });
 

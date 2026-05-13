@@ -8,32 +8,35 @@ import loginBackground from "../../491461670_17919450432084004_82919598860845444
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f1f2a" />
+    <meta name="theme-color" content="#FCFBF9" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
     <title>Alta de solicitantes - Nauka Nayarit</title>
   </head>
-  <body class="min-h-screen bg-slate-950 text-slate-100">
+  <body class="min-h-screen bg-[#213138] text-[#FCFBF9] antialiased">
     <main class="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] items-center justify-center overflow-hidden p-5">
       <div
         class="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={`background-image: url(${loginBackground.src});`}
       ></div>
-      <div class="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]"></div>
+      <div class="absolute inset-0 bg-[#213138]/55 backdrop-blur-[3px]"></div>
 
-      <section class="relative z-10 w-full rounded-[28px] border border-white/20 bg-white/10 px-4 py-5 shadow-[0_28px_56px_rgba(2,8,20,0.48)] backdrop-blur-sm">
-        <div class="space-y-5 rounded-[22px] bg-white px-6 py-7 text-slate-800 shadow-xl">
+      <section class="nauka-hero-glass relative z-10 w-full rounded-[28px] px-4 py-5 shadow-[0_28px_64px_rgba(15,28,34,0.35)]">
+        <div class="nauka-login-card space-y-5 px-6 py-7 text-[#213138]">
           <header class="space-y-2">
-            <h1 class="text-4xl font-semibold tracking-tight">Alta controlada</h1>
-            <p class="text-lg leading-relaxed text-slate-600">
+            <h1 class="font-display text-3xl">Alta controlada</h1>
+            <p class="text-base leading-relaxed text-[#5c6569]">
               Las cuentas de solicitante, guardia y administrador de complejo las da de alta el equipo Nauka (super administrador), con validación de identificación (INE) cuando aplique.
             </p>
           </header>
-          <p class="text-base leading-relaxed text-slate-600">
+          <p class="text-sm leading-relaxed text-[#5c6569]">
             Si necesitas acceso, escribe a administración con tu nombre, lote y correo.
           </p>
-          <a
-            href="/"
-            class="mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-gradient-to-b from-slate-700 to-slate-900 text-lg font-bold text-white transition hover:brightness-110"
-          >
+          <a href="/" class="nauka-btn-primary mt-2 flex h-14 w-full items-center justify-center rounded-2xl text-base font-semibold">
             Volver al inicio de sesión
           </a>
         </div>

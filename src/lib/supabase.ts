@@ -13,6 +13,7 @@ export interface UserProfile {
   terms_version: string | null;
   onboarding_status: string;
   ine_storage_path: string | null;
+  photo_storage_path: string | null;
 }
 
 function readEnv(...keys: string[]): string | undefined {
@@ -116,7 +117,7 @@ export async function getProfileForUser(userId: string, accessToken?: string): P
     const { data, error } = await client
       .from("profiles")
       .select(
-        "id, role, full_name, lot_number, complejo_id, terms_accepted_at, terms_version, onboarding_status, ine_storage_path"
+        "id, role, full_name, lot_number, complejo_id, terms_accepted_at, terms_version, onboarding_status, ine_storage_path, photo_storage_path"
       )
       .eq("id", userId)
       .maybeSingle();
@@ -127,7 +128,8 @@ export async function getProfileForUser(userId: string, accessToken?: string): P
       onboarding_status: (data as { onboarding_status?: string }).onboarding_status ?? "activo",
       terms_accepted_at: (data as { terms_accepted_at?: string | null }).terms_accepted_at ?? null,
       terms_version: (data as { terms_version?: string | null }).terms_version ?? null,
-      ine_storage_path: (data as { ine_storage_path?: string | null }).ine_storage_path ?? null
+      ine_storage_path: (data as { ine_storage_path?: string | null }).ine_storage_path ?? null,
+      photo_storage_path: (data as { photo_storage_path?: string | null }).photo_storage_path ?? null
     } as UserProfile;
   } catch {
     return null;

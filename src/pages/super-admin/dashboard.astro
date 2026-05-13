@@ -25,7 +25,7 @@ const metrics = await getAdminMetrics({
 const supabase = getSupabaseServiceClient();
 const { data: profiles } = await supabase
   .from("profiles")
-  .select("id, full_name, lot_number, complejo_id, role, onboarding_status, ine_storage_path, created_at")
+  .select("id, full_name, lot_number, complejo_id, role, onboarding_status, ine_storage_path, photo_storage_path, created_at")
   .order("created_at", { ascending: false })
   .limit(40);
 ---
@@ -38,50 +38,81 @@ const { data: profiles } = await supabase
   pageTitle="Alta de personal y solicitantes"
 >
   <section class="grid grid-cols-2 gap-3">
-    <article class="rounded-xl bg-white p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)]">
-      <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#64748b]">Movimientos (24 h, global)</p>
-      <p class="mt-2 text-3xl font-extrabold text-[#213138]">{metrics.totalMovimientos}</p>
+    <article class="nauka-card-aero p-4">
+      <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">Movimientos (24 h, global)</p>
+      <p class="mt-2 font-display text-3xl text-[#213138]">{metrics.totalMovimientos}</p>
     </article>
-    <article class="rounded-xl bg-white p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)]">
-      <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#64748b]">Autorizados</p>
-      <p class="mt-2 text-3xl font-extrabold text-[#006d36]">{metrics.totalAutorizados}</p>
+    <article class="nauka-card-aero p-4">
+      <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">Autorizados</p>
+      <p class="mt-2 font-display text-3xl text-[#3d5c4a]">{metrics.totalAutorizados}</p>
     </article>
   </section>
 
-  <section class="mt-8 rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.06)]">
-    <h2 class="text-xl font-bold text-[#213138]">Invitar usuario</h2>
-    <p class="mt-1 text-sm text-[#5f6368]">Se crea la cuenta en Auth y el perfil con rol. Opcional: INE (imagen) en Storage.</p>
-    <form id="invite-form" class="mt-4 space-y-3">
-      <input name="email" type="email" required placeholder="correo@ejemplo.com" class="h-12 w-full rounded-xl border border-[#ececec] px-3 text-sm" />
-      <input name="full_name" type="text" required placeholder="Nombre completo" class="h-12 w-full rounded-xl border border-[#ececec] px-3 text-sm" />
-      <input name="lot_number" type="text" required placeholder="Lote" class="h-12 w-full rounded-xl border border-[#ececec] px-3 text-sm" />
-      <input name="complejo_id" type="text" value="complejo-1" class="h-12 w-full rounded-xl border border-[#ececec] px-3 text-sm" />
-      <select name="role" class="h-12 w-full rounded-xl border border-[#ececec] px-3 text-sm">
-        <option value="solicitante">Solicitante</option>
+  <section class="nauka-card-aero mt-8 p-5">
+    <h2 class="font-display text-xl text-[#213138]">Crear solicitante</h2>
+    <p class="mt-1 text-sm leading-relaxed text-[#5c6569]">
+      Alta directa de cuenta con rol solicitante. Debes adjuntar <strong class="font-medium text-[#213138]">foto del rostro</strong> e
+      <strong class="font-medium text-[#213138]">identificación oficial (INE)</strong> para expediente en Nauka.
+    </p>
+    <form id="solicitante-form" class="mt-4 space-y-4" enctype="multipart/form-data">
+      <input type="hidden" name="role" value="solicitante" />
+      <input name="email" type="email" required placeholder="Correo del solicitante" class="nauka-input-lux text-sm" />
+      <input name="full_name" type="text" required placeholder="Nombre completo" class="nauka-input-lux text-sm" />
+      <input name="lot_number" type="text" required placeholder="Lote" class="nauka-input-lux text-sm" />
+      <input name="complejo_id" type="text" value="complejo-1" class="nauka-input-lux text-sm" />
+      <label class="block text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#5c6569]">
+        Foto del usuario (rostro, jpg/png, máx. 6 MB) · obligatorio
+        <input name="photo" type="file" accept="image/jpeg,image/png" required class="mt-2 w-full text-sm font-normal normal-case tracking-normal text-[#213138]" />
+      </label>
+      <label class="block text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#5c6569]">
+        Identificación (INE, jpg/png, máx. 6 MB) · obligatorio
+        <input name="ine" type="file" accept="image/jpeg,image/png" required class="mt-2 w-full text-sm font-normal normal-case tracking-normal text-[#213138]" />
+      </label>
+      <button type="submit" class="nauka-btn-primary h-12 w-full rounded-2xl text-sm font-semibold">Crear solicitante</button>
+    </form>
+    <pre id="solicitante-result" class="mt-3 hidden whitespace-pre-wrap rounded-2xl border border-[#213138]/[0.06] bg-[#213138]/[0.03] p-3 text-xs text-[#213138]"></pre>
+  </section>
+
+  <section class="nauka-card-aero mt-8 p-5">
+    <h2 class="font-display text-xl text-[#213138]">Invitar guardia o administrador</h2>
+    <p class="mt-1 text-sm leading-relaxed text-[#5c6569]">
+      Cuenta operativa de caseta o de complejo. La INE en archivo es opcional; sin archivo el usuario quedará en revisión de documentos hasta cargar o validar INE.
+    </p>
+    <form id="staff-invite-form" class="mt-4 space-y-4" enctype="multipart/form-data">
+      <input name="email" type="email" required placeholder="correo@ejemplo.com" class="nauka-input-lux text-sm" />
+      <input name="full_name" type="text" required placeholder="Nombre completo" class="nauka-input-lux text-sm" />
+      <input name="lot_number" type="text" required placeholder="Lote (o identificador asignado)" class="nauka-input-lux text-sm" />
+      <input name="complejo_id" type="text" value="complejo-1" class="nauka-input-lux text-sm" />
+      <select name="role" class="nauka-input-lux text-sm" required>
         <option value="guardia">Guardia</option>
         <option value="admin">Admin complejo</option>
       </select>
-      <label class="block text-sm text-[#5f6368]">
-        INE (opcional, jpg/png, máx. 6 MB)
-        <input name="ine" type="file" accept="image/jpeg,image/png" class="mt-1 w-full text-sm" />
+      <label class="block text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#5c6569]">
+        INE o identificación (opcional, jpg/png, máx. 6 MB)
+        <input name="ine" type="file" accept="image/jpeg,image/png" class="mt-2 w-full text-sm font-normal normal-case tracking-normal text-[#213138]" />
       </label>
-      <button type="submit" class="h-12 w-full rounded-xl bg-[#213138] text-sm font-semibold text-white">Crear usuario</button>
+      <button type="submit" class="nauka-btn-primary h-12 w-full rounded-2xl text-sm font-semibold">Crear usuario</button>
     </form>
-    <pre id="invite-result" class="mt-3 hidden whitespace-pre-wrap rounded-lg bg-[#f4f4f4] p-3 text-xs text-[#213138]"></pre>
+    <pre id="staff-invite-result" class="mt-3 hidden whitespace-pre-wrap rounded-2xl border border-[#213138]/[0.06] bg-[#213138]/[0.03] p-3 text-xs text-[#213138]"></pre>
   </section>
 
   <section class="mt-8 space-y-2">
-    <h2 class="text-xl font-bold text-[#213138]">Perfiles recientes</h2>
+    <h2 class="font-display text-xl text-[#213138]">Perfiles recientes</h2>
     {(profiles ?? []).map((p) => (
-      <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-3 text-sm shadow-sm">
+      <div class="nauka-card-aero flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
         <div>
           <p class="font-semibold text-[#213138]">{p.full_name ?? p.id}</p>
-          <p class="text-[#5f6368]">
+          <p class="text-[#5c6569]">
             {p.role} · {p.complejo_id} · lote {p.lot_number ?? "—"} · {p.onboarding_status}
           </p>
+          {p.role === "solicitante" && (
+            <p class="mt-1 text-xs text-[#5c6569]">
+              Expediente: foto {p.photo_storage_path ? "✓" : "—"} · INE {p.ine_storage_path ? "✓" : "—"}
+            </p>
+          )}
         </div>
         {p.onboarding_status !== "activo" && (
-          <button type="button" data-approve-id={p.id} class="approve-btn rounded-lg bg-[#006d36] px-3 py-2 text-xs font-semibold text-white">
+          <button type="button" data-approve-id={p.id} class="approve-btn rounded-full border border-[#3d5c4a]/20 bg-[rgba(61,92,74,0.1)] px-3 py-2 text-xs font-semibold text-[#3d5c4a] transition duration-[400ms] ease-in-out hover:bg-[rgba(61,92,74,0.16)]">
             Marcar activo
           </button>
         )}
@@ -91,24 +122,32 @@ const { data: profiles } = await supabase
 </AppLayout>
 
 <script is:inline>
-  const form = document.getElementById("invite-form");
-  const result = document.getElementById("invite-result");
-  form?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!(form instanceof HTMLFormElement)) return;
-    const fd = new FormData(form);
-    const res = await fetch("/api/super-admin/invite", { method: "POST", body: fd });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      alert(data.error ?? "Error al invitar");
-      return;
-    }
-    if (result) {
-      result.classList.remove("hidden");
-      result.textContent = JSON.stringify(data, null, 2);
-    }
-    alert("Usuario creado. Guarda la contraseña temporal del recuadro.");
-  });
+  const bindInviteForm = (formId, resultId, successVerb) => {
+    const form = document.getElementById(formId);
+    const result = document.getElementById(resultId);
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!(form instanceof HTMLFormElement)) return;
+      const fd = new FormData(form);
+      const res = await fetch("/api/super-admin/invite", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error ?? "Error al crear usuario");
+        if (data.partial && data.userId && result) {
+          result.classList.remove("hidden");
+          result.textContent = JSON.stringify(data, null, 2);
+        }
+        return;
+      }
+      if (result) {
+        result.classList.remove("hidden");
+        result.textContent = JSON.stringify(data, null, 2);
+      }
+      alert(`Usuario ${successVerb}. Copia la contraseña temporal del recuadro antes de salir de esta página.`);
+    });
+  };
+  bindInviteForm("solicitante-form", "solicitante-result", "creado");
+  bindInviteForm("staff-invite-form", "staff-invite-result", "creado");
   document.querySelectorAll(".approve-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-approve-id");

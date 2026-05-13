@@ -12,6 +12,7 @@ interface UserProfile {
   terms_version: string | null;
   onboarding_status: string;
   ine_storage_path: string | null;
+  photo_storage_path: string | null;
 }
 
 declare namespace App {

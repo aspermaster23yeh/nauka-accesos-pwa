@@ -3,13 +3,15 @@ import MainLayout from "../../layouts/MainLayout.astro";
 ---
 
 <MainLayout title="Documentación pendiente">
-  <div class="rounded-2xl bg-amber-50 p-6 text-amber-950">
-    <p class="text-lg font-semibold">INE pendiente de validación</p>
-    <p class="mt-2 text-sm leading-relaxed">
+  <div class="nauka-card-aero border border-[#9a6b5c]/12 bg-gradient-to-br from-[#fdfcfa] to-[#f5ebe8]/60 p-6">
+    <p class="font-display text-xl text-[#213138]">INE pendiente de validación</p>
+    <p class="mt-2 text-sm leading-relaxed text-[#5c6569]">
       Tu cuenta está registrada pero falta cargar o validar tu identificación (INE) con el equipo de Nauka. Contacta al administrador para completar el alta.
     </p>
     <form method="post" action="/api/auth/logout" class="mt-6">
-      <button type="submit" class="text-sm font-semibold text-amber-900 underline">Cerrar sesión</button>
+      <button type="submit" class="text-sm font-semibold text-[#3d5c4a] underline decoration-[#3d5c4a]/30 underline-offset-4 transition duration-[400ms] ease-in-out hover:text-[#213138]">
+        Cerrar sesión
+      </button>
     </form>
   </div>
 </MainLayout>
