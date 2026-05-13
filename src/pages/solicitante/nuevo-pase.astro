@@ -29,17 +29,18 @@ import { passMessages } from "../../lib/ux-messages";
     <form id="pass-form" class="space-y-8">
       <label class="block">
         <span class="nauka-label-lux">Nombre del visitante</span>
-        <input id="visitor-name" class="nauka-input-lux text-xl" placeholder="Ej. Juan Pérez" />
+        <input id="visitor-name" name="visitanteNombre" required autocomplete="name" class="nauka-input-lux text-xl" placeholder="Ej. Juan Pérez" />
       </label>
 
       <label class="block">
         <span class="nauka-label-lux">Fecha de visita</span>
-        <input id="visit-date" type="date" class="nauka-input-lux text-xl" />
+        <input id="visit-date" name="visitDate" type="date" required class="nauka-input-lux text-xl" />
+        <p class="mt-1 text-xs font-medium text-[#5c6569]">Debe ser un día entre hoy y los próximos 30 días.</p>
       </label>
 
       <label class="block">
         <span class="nauka-label-lux">Hora aproximada</span>
-        <input id="visit-time" type="time" class="nauka-input-lux text-xl" />
+        <input id="visit-time" name="visitTime" type="time" required class="nauka-input-lux text-xl" />
       </label>
 
       <label class="block">
@@ -118,7 +119,9 @@ import { passMessages } from "../../lib/ux-messages";
 </AppLayout>
 
 <script is:inline define:vars={{
-  msgNameDate: passMessages.validationNameDate,
+  msgNameOnly: passMessages.validationNameOnly,
+  msgDateTime: passMessages.validationDateTime,
+  msgDateTimeInvalid: passMessages.validationDateTimeInvalid,
   msgPhotos: passMessages.validationPhotos,
   msgFuture: passMessages.validationFuture,
   msgMax30: passMessages.validationMax30,
@@ -165,10 +168,18 @@ import { passMessages } from "../../lib/ux-messages";
     const name = visitorName instanceof HTMLInputElement ? visitorName.value.trim() : "";
     const reason = visitReason instanceof HTMLSelectElement ? visitReason.value : "Visita";
     const notes = visitNotes instanceof HTMLTextAreaElement ? visitNotes.value.trim() : "";
-    const venceEn = combineDateTime();
     hidePassError();
-    if (!name || !venceEn) {
-      showPassError(msgNameDate);
+    if (!name) {
+      showPassError(msgNameOnly);
+      return;
+    }
+    if (!(visitDate instanceof HTMLInputElement) || !(visitTime instanceof HTMLInputElement) || !visitDate.value || !visitTime.value) {
+      showPassError(msgDateTime);
+      return;
+    }
+    const venceEn = combineDateTime();
+    if (!venceEn) {
+      showPassError(msgDateTimeInvalid);
       return;
     }
     const faceInput = visitorFace instanceof HTMLInputElement ? visitorFace : null;
@@ -247,10 +258,26 @@ import { passMessages } from "../../lib/ux-messages";
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   });
 
-  if (visitDate instanceof HTMLInputElement) {
+  /** Fecha local YYYY-MM-DD (mañana por defecto si el campo viene vacío). */
+  const tomorrowLocalYmd = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  if (visitDate instanceof HTMLInputElement && visitTime instanceof HTMLInputElement) {
     const now = new Date();
     const max = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     visitDate.min = now.toISOString().slice(0, 10);
     visitDate.max = max.toISOString().slice(0, 10);
+    if (!visitDate.value.trim()) {
+      visitDate.value = tomorrowLocalYmd();
+    }
+    if (!visitTime.value.trim()) {
+      visitTime.value = "10:00";
+    }
   }
 </script>

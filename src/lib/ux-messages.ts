@@ -1,6 +1,10 @@
 /** Textos coherentes para flujos de pase y onboarding (evita duplicar copy en vistas). */
 export const passMessages = {
+  /** @deprecated Prefer validationNameOnly + validationDateTime en UI. */
   validationNameDate: "Completa nombre del visitante, fecha y hora de visita.",
+  validationNameOnly: "Escribe el nombre del visitante.",
+  validationDateTime: "Elige la fecha y la hora aproximada de la visita (ambos campos son obligatorios).",
+  validationDateTimeInvalid: "La fecha u hora no es válida. Revísalos e inténtalo de nuevo.",
   validationPhotos: "Adjunta la foto del rostro del visitante y la foto legible del INE.",
   validationFuture: "La fecha y hora del pase deben ser futuras.",
   validationMax30: "La visita no puede programarse a más de 30 días.",
