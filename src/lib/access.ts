@@ -792,6 +792,123 @@ export async function getTopSolicitantesPorPases(
   return sorted.map(([id, count]) => ({ id, full_name: pmap.get(id) ?? null, count }));
 }
 
+const pickCount = (res: { count: number | null; error: { message: string } | null }, label: string): number => {
+  if (res.error) {
+    console.error(`[portfolio] ${label}:`, res.error.message);
+    return 0;
+  }
+  return res.count ?? 0;
+};
+
+export type ComplejoPortfolioRow = {
+  id: string;
+  nombre: string;
+  lotesCount: number;
+  solicitantesCount: number;
+  pasesVigentes: number;
+  movimientos24h: number;
+  incidentesAbiertos: number;
+  adminContacto: string | null;
+};
+
+/** KPIs por complejo para vista portafolio (service role). Opcional: un solo complejo (admin local). */
+export async function getSuperAdminComplejosPortfolio(complejoIdFilter?: string | null): Promise<ComplejoPortfolioRow[]> {
+  const supabase = getSupabaseServiceClient();
+  let complejos = await getComplejosList();
+  const f = complejoIdFilter?.trim();
+  if (f) complejos = complejos.filter((c) => c.id === f);
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
+
+  const { data: admins } = await supabase.from("profiles").select("complejo_id, full_name").eq("role", "admin");
+  const adminNombreByComplejo = new Map<string, string>();
+  for (const a of admins ?? []) {
+    const cid = (a.complejo_id as string) ?? "";
+    if (!cid || adminNombreByComplejo.has(cid)) continue;
+    const name = (a.full_name as string | null)?.trim();
+    if (name) adminNombreByComplejo.set(cid, name);
+  }
+
+  const rows = await Promise.all(
+    complejos.map(async (c) => {
+      const [lotes, sol, pases, mov, inc] = await Promise.all([
+        supabase.from("lotes").select("id", { count: "exact", head: true }).eq("complejo_id", c.id),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("complejo_id", c.id).eq("role", "solicitante"),
+        supabase
+          .from("pases_acceso")
+          .select("id", { count: "exact", head: true })
+          .eq("complejo_id", c.id)
+          .eq("estado", "vigente")
+          .gt("vence_en", nowIso),
+        supabase.from("bitacora_accesos").select("id", { count: "exact", head: true }).eq("complejo_id", c.id).gte("created_at", since),
+        supabase.from("incidentes").select("id", { count: "exact", head: true }).eq("complejo_id", c.id).neq("estado", "cerrado")
+      ]);
+      return {
+        id: c.id,
+        nombre: c.nombre,
+        lotesCount: pickCount(lotes, `lotes:${c.id}`),
+        solicitantesCount: pickCount(sol, `solicitantes:${c.id}`),
+        pasesVigentes: pickCount(pases, `pases:${c.id}`),
+        movimientos24h: pickCount(mov, `bitacora:${c.id}`),
+        incidentesAbiertos: pickCount(inc, `incidentes:${c.id}`),
+        adminContacto: adminNombreByComplejo.get(c.id) ?? null
+      };
+    })
+  );
+  return rows;
+}
+
+export type LotePortfolioRow = LoteCatalogRow & {
+  movimientos24h: number;
+  pasesVigentes: number;
+  solicitantesEnLote: number;
+};
+
+/** Catálogo de lotes del complejo con KPIs en ventana móvil 24 h. */
+export async function getSuperAdminLotesPortfolioForComplejo(complejoId: string): Promise<LotePortfolioRow[]> {
+  const supabase = getSupabaseServiceClient();
+  const complejos = await getComplejosList();
+  if (!complejos.some((c) => c.id === complejoId)) return [];
+
+  const lotes = (await getLotesWithResponsables()).filter((l) => l.complejo_id === complejoId);
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
+
+  const enriched = await Promise.all(
+    lotes.map(async (l) => {
+      const lotNorm = l.lot_number.trim();
+      const [mov, pas, sol] = await Promise.all([
+        supabase
+          .from("bitacora_accesos")
+          .select("id", { count: "exact", head: true })
+          .eq("complejo_id", complejoId)
+          .eq("lote_number", lotNorm)
+          .gte("created_at", since),
+        supabase
+          .from("pases_acceso")
+          .select("id", { count: "exact", head: true })
+          .eq("complejo_id", complejoId)
+          .eq("lote_number", lotNorm)
+          .eq("estado", "vigente")
+          .gt("vence_en", nowIso),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("complejo_id", complejoId)
+          .eq("role", "solicitante")
+          .eq("lot_number", lotNorm)
+      ]);
+      return {
+        ...l,
+        movimientos24h: pickCount(mov, `bitacora-lote:${complejoId}/${lotNorm}`),
+        pasesVigentes: pickCount(pas, `pases-lote:${complejoId}/${lotNorm}`),
+        solicitantesEnLote: pickCount(sol, `sol-lote:${complejoId}/${lotNorm}`)
+      };
+    })
+  );
+  return enriched.sort((a, b) => a.lot_number.localeCompare(b.lot_number, "es", { numeric: true }));
+}
+
 async function registerBitacoraEvent(input: {
   supabase: ReturnType<typeof getSupabaseServiceClient>;
   complejoId: string;

@@ -1,0 +1,182 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import { adminNav } from "../../lib/nav";
+import { isPlatformAdmin, isSuperAdmin } from "../../lib/admin-access";
+import { getSuperAdminComplejosPortfolio } from "../../lib/access";
+
+const profile = Astro.locals.profile;
+if (!profile || !isPlatformAdmin(profile.role)) {
+  return Astro.redirect("/", 302);
+}
+
+const globalView = isSuperAdmin(profile.role);
+const complejoScope = globalView ? null : (profile.complejo_id ?? "complejo-1");
+
+let complejos: Awaited<ReturnType<typeof getSuperAdminComplejosPortfolio>> = [];
+try {
+  complejos = await getSuperAdminComplejosPortfolio(complejoScope);
+} catch {
+  complejos = [];
+}
+
+function coverStyle(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i) * 17) % 360;
+  const h2 = (h + 40) % 360;
+  return `linear-gradient(135deg, hsl(${h} 42% 38%) 0%, hsl(${h2} 35% 22%) 100%)`;
+}
+
+const eyebrow = globalView ? "Super admin · Vista global" : "Administrador · Tu complejo";
+---
+
+<AppLayout
+  wide
+  title="Portafolio de complejos - Nauka"
+  topBar={{ title: "Complejos", leftIcon: "domain", leftHref: "#", rightIcon: "refresh", rightHref: "#" }}
+  navItems={adminNav}
+  activeNav="portafolio"
+  pageTitle="Portafolio"
+  bodyClass="bg-[#f0eeeb] text-[#213138]"
+  shellCanvasClass="nauka-soul-canvas"
+>
+  <div class="mb-2 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[#7a7e82]">{eyebrow}</p>
+      <h1 class="mt-1 font-display text-3xl font-bold tracking-tight text-[#213138] md:text-4xl">Complejos y operación en vivo</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-relaxed text-[#5c6569]">
+        Tarjetas por complejo con KPIs de catálogo de lotes, solicitantes, pases vigentes y movimientos de caseta (últimas 24 h). Los datos se refrescan automáticamente cada 45 s.
+      </p>
+    </div>
+    <p id="portfolio-updated" class="text-xs font-medium text-[#5c6569]">Actualizado al cargar</p>
+  </div>
+
+  <div class="mb-8 flex flex-wrap gap-2">
+    <a
+      href="/admin/operaciones#alta-lote"
+      class="inline-flex items-center gap-2 rounded-full border border-[#213138]/12 bg-white px-4 py-2 text-sm font-semibold text-[#213138] shadow-sm"
+    >
+      <span class="material-symbols-outlined text-lg">add_home</span>
+      Registrar lote
+    </a>
+    <a href="/admin/actividad" class="inline-flex items-center gap-2 rounded-full border border-[#213138]/12 bg-white px-4 py-2 text-sm font-semibold text-[#213138] shadow-sm">
+      <span class="material-symbols-outlined text-lg">timeline</span>
+      Actividad en vivo
+    </a>
+  </div>
+
+  {
+    complejos.length === 0 ? (
+      <p class="rounded-2xl border border-dashed border-[#213138]/15 bg-white/90 p-10 text-center text-sm text-[#5c6569]">
+        No hay complejos que mostrar con el alcance actual.
+      </p>
+    ) : (
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3" id="portfolio-grid">
+        {complejos.map((c) => (
+          <article
+            class="group flex flex-col overflow-hidden rounded-2xl border border-[#213138]/[0.06] bg-white shadow-[0_12px_40px_rgba(26,28,28,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_48px_rgba(26,28,28,0.12)]"
+            data-complejo-card={c.id}
+          >
+            <div class="relative h-40 w-full shrink-0 overflow-hidden" style={{ background: coverStyle(c.id) }}>
+              <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M30%200L60%2030L30%2060L0%2030Z%22%20fill%3D%22none%22%20stroke%3D%22rgba(255%2C255%2C255%2C0.07)%22%20stroke-width%3D%221%22/%3E%3C/svg%3E')] opacity-60" />
+              <span class="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#b85c2e] shadow-sm">
+                <span class="h-1.5 w-1.5 rounded-full bg-[#e65100]" />
+                Activo
+              </span>
+            </div>
+            <div class="flex flex-1 flex-col p-5">
+              <h2 class="font-display text-xl font-bold text-[#213138]">{c.nombre}</h2>
+              <p class="mt-1 flex items-center gap-1 text-xs text-[#5c6569]">
+                <span class="material-symbols-outlined text-sm text-[#7a7e82]">location_on</span>
+                {c.id}
+              </p>
+              {c.adminContacto && (
+                <div class="mt-4 rounded-xl bg-[#f5f4f2] p-3">
+                  <p class="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#7a7e82]">Contacto operación</p>
+                  <p class="mt-1 text-sm font-semibold text-[#213138]">{c.adminContacto}</p>
+                  <p class="text-xs text-[#5c6569]">Administrador del complejo</p>
+                </div>
+              )}
+              <div class="mt-5 grid grid-cols-2 gap-3">
+                <div>
+                  <p class="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#7a7e82]">Lotes catálogo</p>
+                  <p class="data-lotes mt-1 font-display text-2xl font-semibold tabular-nums text-[#213138]">{c.lotesCount}</p>
+                </div>
+                <div>
+                  <p class="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#7a7e82]">Mov. caseta 24 h</p>
+                  <p class="data-mov mt-1 font-display text-2xl font-semibold tabular-nums text-[#3d5c4a]">{c.movimientos24h}</p>
+                </div>
+                <div>
+                  <p class="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#7a7e82]">Pases vigentes</p>
+                  <p class="data-pases mt-1 font-display text-2xl font-semibold tabular-nums text-[#213138]">{c.pasesVigentes}</p>
+                </div>
+                <div>
+                  <p class="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#7a7e82]">Incidentes abiertos</p>
+                  <p class="data-inc mt-1 font-display text-2xl font-semibold tabular-nums text-[#9a6b5c]">{c.incidentesAbiertos}</p>
+                </div>
+              </div>
+              <div class="mt-4 flex items-center justify-between border-t border-[#eceae6] pt-4">
+                <p class="text-xs text-[#5c6569]">
+                  <span class="data-sol font-semibold text-[#213138]">{c.solicitantesCount}</span> solicitantes
+                </p>
+                <a
+                  href={`/admin/portafolio/complejo/${encodeURIComponent(c.id)}`}
+                  class="inline-flex items-center gap-1 rounded-xl bg-gradient-to-b from-[#9a6b5c] to-[#7a5348] px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                >
+                  Ver lotes
+                  <span class="material-symbols-outlined text-base">arrow_forward</span>
+                </a>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    )
+  }
+
+  <p class="mt-10 text-center text-sm text-[#5c6569]">
+    <a href="/admin/dashboard" class="font-semibold text-[#3d5c4a] underline underline-offset-2">
+      Ir al resumen del panel
+    </a>
+  </p>
+
+  <script is:inline>
+    (function () {
+      var pollMs = 45000;
+      function fmtTime(iso) {
+        try {
+          return new Date(iso).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
+        } catch (e) {
+          return iso;
+        }
+      }
+      function applyPayload(data) {
+        var elUp = document.getElementById("portfolio-updated");
+        if (elUp && data.updatedAt) elUp.textContent = "Última actualización: " + fmtTime(data.updatedAt);
+        var list = data.complejos || [];
+        for (var i = 0; i < list.length; i++) {
+          var c = list[i];
+          var card = document.querySelector('[data-complejo-card="' + c.id.replace(/"/g, "") + '"]');
+          if (!card) continue;
+          var lotes = card.querySelector(".data-lotes");
+          var mov = card.querySelector(".data-mov");
+          var pases = card.querySelector(".data-pases");
+          var inc = card.querySelector(".data-inc");
+          var sol = card.querySelector(".data-sol");
+          if (lotes) lotes.textContent = String(c.lotesCount);
+          if (mov) mov.textContent = String(c.movimientos24h);
+          if (pases) pases.textContent = String(c.pasesVigentes);
+          if (inc) inc.textContent = String(c.incidentesAbiertos);
+          if (sol) sol.textContent = String(c.solicitantesCount);
+        }
+      }
+      async function tick() {
+        try {
+          var res = await fetch("/api/admin/portfolio", { credentials: "same-origin" });
+          var data = await res.json();
+          if (res.ok && data.complejos) applyPayload(data);
+        } catch (e) {}
+      }
+      setInterval(tick, pollMs);
+    })();
+  </script>
+</AppLayout>

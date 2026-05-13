@@ -57,12 +57,6 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null
 export const onRequest = defineMiddleware(async (context, next) => {
   const pathname = context.url.pathname;
 
-  if (pathname.startsWith("/super-admin")) {
-    let rest = pathname.slice("/super-admin".length);
-    if (!rest || rest === "/") rest = "/dashboard";
-    return context.redirect(`/admin${rest}${context.url.search}`, 308);
-  }
-
   const accessToken = context.cookies.get("sb-access-token")?.value;
   const publicPath = isPublicPath(pathname);
   const apiPath = pathname.startsWith("/api") ? pathname.replace(/^\/api/, "") || "/" : pathname;
@@ -108,6 +102,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
         }
       } else if (requiredRole && (!profile || profile.role !== requiredRole)) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+      }
+      return next();
+    }
+
+    if (pathname.startsWith("/super-admin")) {
+      if (!user || !profile) {
+        return context.redirect("/");
+      }
+      if (profile.role !== "super_admin") {
+        return context.redirect(getRoleHome(profile.role));
       }
       return next();
     }

@@ -1,6 +1,7 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
 import { adminNav } from "../../lib/nav";
+import { isPlatformAdmin } from "../../lib/admin-access";
 import { getAdminMetrics } from "../../lib/access";
 import BlurText from "../../components/react/BlurText.jsx";
 
@@ -92,6 +93,25 @@ const cards = [
     stepDuration={0.32}
     className="-mt-3 mb-8 max-w-2xl text-sm leading-relaxed text-[#5c6569]"
   />
+
+  {
+    isPlatformAdmin(profile?.role) && (
+      <a
+        href="/admin/portafolio"
+        class="mb-8 flex flex-col rounded-2xl border border-[#9a6b5c]/25 bg-gradient-to-br from-[#faf6f3] to-[#f0ebe6] p-5 shadow-sm transition hover:border-[#9a6b5c]/40 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <p class="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#9a6b5c]">Operación</p>
+          <p class="mt-1 font-display text-lg font-semibold text-[#213138]">Portafolio de complejos y lotes</p>
+          <p class="mt-1 text-sm text-[#5c6569]">Vista con cards, KPIs en vivo (24 h) y drill-down por lote.</p>
+        </div>
+        <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#9a6b5c] sm:mt-0">
+          Abrir portafolio
+          <span class="material-symbols-outlined text-lg">arrow_forward</span>
+        </span>
+      </a>
+    )
+  }
 
   <section class="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Indicadores 24 h">
     <article class="rounded-2xl border border-[#213138]/[0.06] bg-white p-4 shadow-sm">

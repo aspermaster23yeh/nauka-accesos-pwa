@@ -5,6 +5,10 @@ export function isPlatformAdmin(role: AppRole | null | undefined): boolean {
   return role === "admin" || role === "super_admin";
 }
 
+export function isSuperAdmin(role: AppRole | null | undefined): boolean {
+  return role === "super_admin";
+}
+
 /** Comité: solo lectura de bitácora y exportes en su complejo. */
 export function isCommitteeReader(role: AppRole | null | undefined): boolean {
   return role === "lector_junta";

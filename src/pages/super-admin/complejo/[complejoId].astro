@@ -1,0 +1,4 @@
+---
+const id = Astro.params.complejoId ?? "";
+return Astro.redirect(`/admin/portafolio/complejo/${encodeURIComponent(id)}`, 308);
+---

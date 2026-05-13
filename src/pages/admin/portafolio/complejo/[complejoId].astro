@@ -1,0 +1,197 @@
+---
+import AppLayout from "../../../../layouts/AppLayout.astro";
+import { adminNav } from "../../../../lib/nav";
+import { isPlatformAdmin, isSuperAdmin } from "../../../../lib/admin-access";
+import { getComplejosList, getSuperAdminLotesPortfolioForComplejo } from "../../../../lib/access";
+
+export const prerender = false;
+
+const profile = Astro.locals.profile;
+if (!profile || !isPlatformAdmin(profile.role)) {
+  return Astro.redirect("/", 302);
+}
+
+const rawId = Astro.params.complejoId ?? "";
+const complejoId = decodeURIComponent(rawId);
+const adminComplejo = profile.complejo_id ?? "complejo-1";
+
+if (!isSuperAdmin(profile.role) && complejoId !== adminComplejo) {
+  return Astro.redirect("/admin/portafolio", 302);
+}
+
+const complejos = await getComplejosList().catch(() => [] as { id: string; nombre: string }[]);
+const meta = complejos.find((c) => c.id === complejoId);
+
+let lotes: Awaited<ReturnType<typeof getSuperAdminLotesPortfolioForComplejo>> = [];
+try {
+  lotes = await getSuperAdminLotesPortfolioForComplejo(complejoId);
+} catch {
+  lotes = [];
+}
+
+function coverStyle(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h + seed.charCodeAt(i) * 13) % 360;
+  const h2 = (h + 55) % 360;
+  return `linear-gradient(145deg, hsl(${h} 36% 42%) 0%, hsl(${h2} 32% 26%) 100%)`;
+}
+
+const titleNombre = meta?.nombre ?? complejoId;
+---
+
+<AppLayout
+  wide
+  title={`${titleNombre} · Lotes`}
+  topBar={{
+    title: titleNombre,
+    leftIcon: "arrow_back",
+    leftHref: "/admin/portafolio",
+    rightIcon: "refresh",
+    rightHref: "#"
+  }}
+  navItems={adminNav}
+  activeNav="portafolio"
+  pageTitle="Lotes del complejo"
+  bodyClass="bg-[#f0eeeb] text-[#213138]"
+  shellCanvasClass="nauka-soul-canvas"
+>
+  {
+    !meta ? (
+      <p class="rounded-2xl border border-dashed border-[#9a6b5c]/30 bg-white/90 p-8 text-center text-sm text-[#5c6569]">
+        Complejo no encontrado.{" "}
+        <a href="/admin/portafolio" class="font-semibold text-[#3d5c4a] underline">
+          Volver al portafolio
+        </a>
+      </p>
+    ) : (
+      <>
+        <nav class="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#7a7e82]">
+          <a href="/admin/portafolio" class="text-[#3d5c4a] hover:underline">
+            Complejos
+          </a>
+          <span class="mx-2 opacity-60">/</span>
+          <span class="text-[#213138]">{meta.nombre}</span>
+        </nav>
+        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="font-display text-3xl font-bold tracking-tight text-[#213138] md:text-4xl">{meta.nombre}</h1>
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-[#fff3e8] px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#b85c2e]">
+                <span class="h-1.5 w-1.5 rounded-full bg-[#e65100]" />
+                Activo
+              </span>
+            </div>
+            <p class="mt-2 max-w-2xl text-sm text-[#5c6569]">
+              Cada tarjeta es un lote del catálogo con actividad de caseta (24 h), pases QR aún vigentes y solicitantes asignados a ese número de lote. Actualización automática cada 45 s.
+            </p>
+          </div>
+          <p id="lotes-updated" class="text-xs font-medium text-[#5c6569]">Actualizado al cargar</p>
+        </div>
+
+        <div class="mb-6">
+          <a
+            href="/admin/operaciones#alta-lote"
+            class="inline-flex items-center gap-2 rounded-full border border-[#213138]/12 bg-white px-4 py-2 text-sm font-semibold text-[#213138] shadow-sm"
+          >
+            <span class="material-symbols-outlined text-lg">edit_square</span>
+            Registrar o editar lote
+          </a>
+        </div>
+
+        {lotes.length === 0 ? (
+          <p class="rounded-2xl border border-dashed border-[#213138]/15 bg-white/90 p-10 text-center text-sm text-[#5c6569]">
+            No hay lotes en el catálogo para este complejo. Usa “Registrar o editar lote” para dar de alta el primero.
+          </p>
+        ) : (
+          <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" id="lotes-grid" data-complejo-id={complejoId}>
+            {lotes.map((l) => (
+              <article
+                class="flex flex-col overflow-hidden rounded-2xl border border-[#213138]/[0.06] bg-white shadow-[0_10px_32px_rgba(26,28,28,0.06)]"
+                data-lote-card={l.id}
+              >
+                <div class="relative h-28 w-full shrink-0" style={{ background: coverStyle(complejoId + "::" + l.lot_number) }}>
+                  <span class="absolute bottom-2 left-3 rounded-lg bg-black/45 px-2 py-1 font-display text-lg font-bold tracking-tight text-white backdrop-blur-sm">
+                    Lote {l.lot_number}
+                  </span>
+                </div>
+                <div class="flex flex-1 flex-col p-4">
+                  {l.owner_name && <p class="text-sm text-[#5c6569]">Titular: <span class="font-semibold text-[#213138]">{l.owner_name}</span></p>}
+                  <p class="mt-1 text-sm text-[#5c6569]">
+                    Responsable:{" "}
+                    <span class="font-semibold text-[#213138]">{l.responsable_nombre ?? "Sin asignar"}</span>
+                  </p>
+                  <div class="mt-4 grid grid-cols-3 gap-2 border-t border-[#eceae6] pt-4 text-center">
+                    <div>
+                      <p class="text-[0.55rem] font-bold uppercase tracking-[0.12em] text-[#7a7e82]">Caseta 24 h</p>
+                      <p class="data-mov mt-1 text-lg font-bold tabular-nums text-[#3d5c4a]">{l.movimientos24h}</p>
+                    </div>
+                    <div>
+                      <p class="text-[0.55rem] font-bold uppercase tracking-[0.12em] text-[#7a7e82]">Pases vivos</p>
+                      <p class="data-pases mt-1 text-lg font-bold tabular-nums text-[#213138]">{l.pasesVigentes}</p>
+                    </div>
+                    <div>
+                      <p class="text-[0.55rem] font-bold uppercase tracking-[0.12em] text-[#7a7e82]">Solicitantes</p>
+                      <p class="data-sol mt-1 text-lg font-bold tabular-nums text-[#213138]">{l.solicitantesEnLote}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4 flex justify-end">
+                    <a
+                      href={`/admin/bitacora?complejo_id=${encodeURIComponent(complejoId)}&q=${encodeURIComponent(l.lot_number)}`}
+                      class="text-sm font-semibold text-[#3d5c4a] underline underline-offset-2"
+                    >
+                      Ver bitácora filtrada
+                    </a>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </>
+    )
+  }
+
+  {
+    meta && (
+      <script is:inline define:vars={{ complejoId }}>
+        (function () {
+          var id = complejoId;
+          if (!id) return;
+          var pollMs = 45000;
+          function fmtTime(iso) {
+            try {
+              return new Date(iso).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
+            } catch (e) {
+              return iso;
+            }
+          }
+          function apply(data) {
+            var elUp = document.getElementById("lotes-updated");
+            if (elUp && data.updatedAt) elUp.textContent = "Última actualización: " + fmtTime(data.updatedAt);
+            var list = data.lotes || [];
+            for (var i = 0; i < list.length; i++) {
+              var l = list[i];
+              var card = document.querySelector('[data-lote-card="' + l.id + '"]');
+              if (!card) continue;
+              var mov = card.querySelector(".data-mov");
+              var pases = card.querySelector(".data-pases");
+              var sol = card.querySelector(".data-sol");
+              if (mov) mov.textContent = String(l.movimientos24h);
+              if (pases) pases.textContent = String(l.pasesVigentes);
+              if (sol) sol.textContent = String(l.solicitantesEnLote);
+            }
+          }
+          async function tick() {
+            try {
+              var u = "/api/admin/portfolio?complejoId=" + encodeURIComponent(id);
+              var res = await fetch(u, { credentials: "same-origin" });
+              var data = await res.json();
+              if (res.ok && data.lotes) apply(data);
+            } catch (e) {}
+          }
+          setInterval(tick, pollMs);
+        })();
+      </script>
+    )
+  }
+</AppLayout>

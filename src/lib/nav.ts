@@ -14,6 +14,7 @@ export const guardNav: BottomNavItem[] = [
 
 export const adminNav: BottomNavItem[] = [
   { id: "dashboard", label: "Resumen", icon: "dashboard", href: "/admin/dashboard" },
+  { id: "portafolio", label: "Complejos", icon: "domain", href: "/admin/portafolio" },
   { id: "analitica", label: "Analítica", icon: "analytics", href: "/admin/analitica" },
   { id: "actividad", label: "Actividad", icon: "timeline", href: "/admin/actividad" },
   { id: "bitacora", label: "Bitácora", icon: "history", href: "/admin/bitacora" },
@@ -24,3 +25,12 @@ export const adminNav: BottomNavItem[] = [
 
 /** Navegación mínima para rol comité (solo lectura). */
 export const committeeReaderNav: BottomNavItem[] = [{ id: "bitacora", label: "Bitácora", icon: "history", href: "/admin/bitacora" }];
+
+/** Portafolio global y enlaces al panel operativo (solo super_admin). */
+export const superAdminNav: BottomNavItem[] = [
+  { id: "portfolio", label: "Complejos", icon: "domain", href: "/admin/portafolio" },
+  { id: "admin-dash", label: "Panel admin", icon: "dashboard", href: "/admin/dashboard" },
+  { id: "operaciones", label: "Altas", icon: "group_add", href: "/admin/operaciones" },
+  { id: "bitacora", label: "Bitácora", icon: "history", href: "/admin/bitacora" },
+  { id: "actividad", label: "Actividad", icon: "timeline", href: "/admin/actividad" }
+];
