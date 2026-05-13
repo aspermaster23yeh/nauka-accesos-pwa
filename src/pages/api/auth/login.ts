@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { getRoleHome } from "../../../lib/role-home";
 import { getSupabaseServerClient, getSupabaseServiceClient, type AppRole } from "../../../lib/supabase";
 
 export const prerender = false;
@@ -8,12 +9,6 @@ function sanitizeEmail(raw: FormDataEntryValue | null): string {
     .trim()
     .replace(/^["'\s]+|["'\s]+$/g, "")
     .toLowerCase();
-}
-
-function loginTarget(role: AppRole): string {
-  if (role === "super_admin" || role === "admin") return "/admin/dashboard";
-  if (role === "guardia") return "/guardia/escaner";
-  return "/solicitante/inicio";
 }
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -74,7 +69,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       profile = { role: "solicitante", id: data.user.id };
     }
 
-    const target = loginTarget(profile.role as AppRole);
+    const target = getRoleHome(profile.role as AppRole);
     return new Response(null, {
       status: 303,
       headers: {

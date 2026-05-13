@@ -413,7 +413,9 @@ export async function getAdminMetrics(ctx: AuthContext) {
   /** Admin y super_admin comparten vista global de métricas. */
   const globalAdmin = ctx.role === "super_admin" || ctx.role === "admin";
 
-  const bitacoraBase = () => supabase.from("bitacora_accesos").select("id", { count: "planned", head: true }).gte("created_at", since);
+  /** `exact` cuenta filas reales; `planned` es estimación del planificador y puede cuadrar mal con la bitácora. */
+  const bitacoraBase = () =>
+    supabase.from("bitacora_accesos").select("id", { count: "exact", head: true }).gte("created_at", since);
 
   const movQ = globalAdmin ? bitacoraBase() : bitacoraBase().eq("complejo_id", ctx.complejoId);
   const authQ = globalAdmin
@@ -422,17 +424,24 @@ export async function getAdminMetrics(ctx: AuthContext) {
   const rejQ = globalAdmin
     ? bitacoraBase().eq("resultado", "rechazado")
     : bitacoraBase().eq("complejo_id", ctx.complejoId).eq("resultado", "rechazado");
-  const incBase = supabase.from("incidentes").select("id", { count: "planned", head: true }).neq("estado", "cerrado");
+  const incBase = supabase.from("incidentes").select("id", { count: "exact", head: true }).neq("estado", "cerrado");
   const incQ = globalAdmin ? incBase : incBase.eq("complejo_id", ctx.complejoId);
 
-  const [{ count: totalMovimientos }, { count: totalAutorizados }, { count: totalRechazados }, { count: incidentesAbiertos }] =
-    await Promise.all([movQ, authQ, rejQ, incQ]);
+  const [movRes, authRes, rejRes, incRes] = await Promise.all([movQ, authQ, rejQ, incQ]);
+
+  const pick = (label: string, res: { count: number | null; error: { message: string } | null }) => {
+    if (res.error) {
+      console.error(`[getAdminMetrics] ${label}:`, res.error.message);
+      return 0;
+    }
+    return res.count ?? 0;
+  };
 
   return {
-    totalMovimientos: totalMovimientos ?? 0,
-    totalAutorizados: totalAutorizados ?? 0,
-    totalRechazados: totalRechazados ?? 0,
-    incidentesAbiertos: incidentesAbiertos ?? 0
+    totalMovimientos: pick("movimientos", movRes),
+    totalAutorizados: pick("autorizados", authRes),
+    totalRechazados: pick("rechazados", rejRes),
+    incidentesAbiertos: pick("incidentes", incRes)
   };
 }
 
@@ -547,6 +556,97 @@ export async function getSolicitantesForSelect() {
     .order("full_name");
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+export type AnalyticsBucketKind = "hour" | "day" | "week" | "month";
+
+/** Entradas autorizadas en caseta agregadas por periodo (UTC). */
+export async function getEntradasTimeSeries(bucket: AnalyticsBucketKind, sinceDays = 45): Promise<{ label: string; count: number }[]> {
+  const supabase = getSupabaseServiceClient();
+  const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("bitacora_accesos")
+    .select("created_at")
+    .eq("tipo_evento", "entrada")
+    .eq("resultado", "autorizado")
+    .gte("created_at", since);
+  if (error) throw new Error(error.message);
+
+  const weekMondayUtc = (d: Date) => {
+    const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    const day = new Date(t).getUTCDay() || 7;
+    const mondayMs = t - (day - 1) * 86400000;
+    return new Date(mondayMs).toISOString().slice(0, 10);
+  };
+
+  const map = new Map<string, number>();
+  for (const row of data ?? []) {
+    const d = new Date(row.created_at as string);
+    let key: string;
+    if (bucket === "hour") {
+      key = d.toISOString().slice(0, 13) + ":00:00.000Z";
+    } else if (bucket === "day") {
+      key = d.toISOString().slice(0, 10);
+    } else if (bucket === "week") {
+      key = weekMondayUtc(d);
+    } else {
+      key = d.toISOString().slice(0, 7);
+    }
+    map.set(key, (map.get(key) ?? 0) + 1);
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([label, count]) => ({ label, count }));
+}
+
+/** Guardias con más registros de entrada/salida autorizados en caseta. */
+export async function getTopGuardiasAccesos(
+  sinceDays = 30,
+  limit = 15
+): Promise<{ id: string; full_name: string | null; count: number }[]> {
+  const supabase = getSupabaseServiceClient();
+  const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("bitacora_accesos")
+    .select("guardia_id")
+    .in("tipo_evento", ["entrada", "salida"])
+    .eq("resultado", "autorizado")
+    .not("guardia_id", "is", null)
+    .gte("created_at", since);
+  if (error) throw new Error(error.message);
+  const counts = new Map<string, number>();
+  for (const r of data ?? []) {
+    const id = r.guardia_id as string;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+  const ids = sorted.map(([id]) => id);
+  if (ids.length === 0) return [];
+  const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+  const pmap = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
+  return sorted.map(([id, count]) => ({ id, full_name: pmap.get(id) ?? null, count }));
+}
+
+/** Solicitantes que más pases de visita han creado (quién “da” más altas de acceso). */
+export async function getTopSolicitantesPorPases(
+  sinceDays = 30,
+  limit = 15
+): Promise<{ id: string; full_name: string | null; count: number }[]> {
+  const supabase = getSupabaseServiceClient();
+  const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+  const { data, error } = await supabase.from("pases_acceso").select("creado_por").gte("created_at", since);
+  if (error) throw new Error(error.message);
+  const counts = new Map<string, number>();
+  for (const r of data ?? []) {
+    const id = r.creado_por as string;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+  const ids = sorted.map(([id]) => id);
+  if (ids.length === 0) return [];
+  const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+  const pmap = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
+  return sorted.map(([id, count]) => ({ id, full_name: pmap.get(id) ?? null, count }));
 }
 
 async function registerBitacoraEvent(input: {

@@ -1,0 +1,253 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import { adminNav } from "../../lib/nav";
+import { getComplejosList, getLotesWithResponsables, getSolicitantesForSelect } from "../../lib/access";
+import { getSupabaseServiceClient } from "../../lib/supabase";
+
+let complejos: { id: string; nombre: string }[] = [];
+let solicitantes: { id: string; full_name: string | null; lot_number: string | null; complejo_id: string | null }[] = [];
+let lotesCatalog: Awaited<ReturnType<typeof getLotesWithResponsables>> = [];
+try {
+  lotesCatalog = await getLotesWithResponsables();
+} catch {
+  lotesCatalog = [];
+}
+
+try {
+  const [comp, sol] = await Promise.all([getComplejosList(), getSolicitantesForSelect()]);
+  complejos = comp;
+  solicitantes = sol;
+} catch {
+  /* esquema o red */
+}
+
+const supabase = getSupabaseServiceClient();
+const { data: profiles } = await supabase
+  .from("profiles")
+  .select("id, full_name, lot_number, complejo_id, role, onboarding_status, ine_storage_path, photo_storage_path, created_at")
+  .order("created_at", { ascending: false })
+  .limit(40);
+---
+
+<AppLayout
+  wide
+  title="Altas - Nauka Nayarit"
+  topBar={{ title: "Altas", leftIcon: "arrow_back", leftHref: "/admin/dashboard", rightIcon: "menu", rightHref: "#" }}
+  navItems={adminNav}
+  activeNav="operaciones"
+  pageTitle="Altas y operaciones"
+  bodyClass="bg-[#F9F8F6] text-[#213138]"
+  shellCanvasClass="nauka-soul-canvas"
+>
+  <p class="-mt-3 mb-8 max-w-2xl text-sm text-[#5c6569]">
+    Registro de solicitantes, invitaciones de personal, lotes y aprobación de perfiles.
+  </p>
+
+  <nav class="mb-10 flex flex-wrap gap-2 text-sm font-semibold">
+    <a href="#alta-solicitante" class="rounded-full border border-[#213138]/10 bg-white px-4 py-2 text-[#213138]">Solicitante</a>
+    <a href="#alta-personal" class="rounded-full border border-[#213138]/10 bg-white px-4 py-2 text-[#213138]">Guardia / admin</a>
+    <a href="#alta-lote" class="rounded-full border border-[#213138]/10 bg-white px-4 py-2 text-[#213138]">Lote</a>
+    <a href="#perfiles" class="rounded-full border border-[#213138]/10 bg-white px-4 py-2 text-[#213138]">Perfiles</a>
+  </nav>
+
+  <section id="alta-solicitante" class="nauka-glass-editorial p-5 md:p-7">
+    <h2 class="font-display text-xl text-[#213138]">Crear solicitante</h2>
+    <p class="nauka-ui-display mt-2 text-sm leading-relaxed text-[#5c6569]">Foto e INE obligatorios.</p>
+    <form id="solicitante-form" class="mt-4 space-y-4" enctype="multipart/form-data">
+      <input type="hidden" name="role" value="solicitante" />
+      <input name="email" type="email" required placeholder="Correo" class="nauka-input-lux text-sm" />
+      <input name="full_name" type="text" required placeholder="Nombre completo" class="nauka-input-lux text-sm" />
+      <input name="lot_number" type="text" required placeholder="Lote" class="nauka-input-lux text-sm" />
+      <input name="complejo_id" type="text" value="complejo-1" class="nauka-input-lux text-sm" />
+      <label class="block text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#5c6569]">
+        Foto (obligatorio)
+        <input name="photo" type="file" accept="image/jpeg,image/png" required class="mt-2 w-full text-sm font-normal normal-case tracking-normal" />
+      </label>
+      <label class="block text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#5c6569]">
+        INE (obligatorio)
+        <input name="ine" type="file" accept="image/jpeg,image/png" required class="mt-2 w-full text-sm font-normal normal-case tracking-normal" />
+      </label>
+      <button type="submit" class="nauka-btn-primary h-12 w-full rounded-2xl text-sm font-semibold">Crear solicitante</button>
+    </form>
+    <pre id="solicitante-result" class="mt-3 hidden whitespace-pre-wrap rounded-2xl border border-[#213138]/[0.06] bg-[#213138]/[0.03] p-3 text-xs"></pre>
+  </section>
+
+  <section id="alta-personal" class="nauka-glass-editorial mt-8 p-5 md:p-7">
+    <h2 class="font-display text-xl text-[#213138]">Invitar guardia o administrador</h2>
+    <p class="nauka-ui-display mt-2 text-sm text-[#5c6569]">INE opcional.</p>
+    <form id="staff-invite-form" class="mt-4 space-y-4" enctype="multipart/form-data">
+      <input name="email" type="email" required placeholder="correo@ejemplo.com" class="nauka-input-lux text-sm" />
+      <input name="full_name" type="text" required placeholder="Nombre completo" class="nauka-input-lux text-sm" />
+      <input name="lot_number" type="text" required placeholder="Lote o identificador" class="nauka-input-lux text-sm" />
+      <input name="complejo_id" type="text" value="complejo-1" class="nauka-input-lux text-sm" />
+      <select name="role" class="nauka-input-lux text-sm" required>
+        <option value="guardia">Guardia</option>
+        <option value="admin">Administrador</option>
+      </select>
+      <label class="block text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#5c6569]">
+        INE (opcional)
+        <input name="ine" type="file" accept="image/jpeg,image/png" class="mt-2 w-full text-sm font-normal normal-case tracking-normal" />
+      </label>
+      <button type="submit" class="nauka-btn-primary h-12 w-full rounded-2xl text-sm font-semibold">Crear usuario</button>
+    </form>
+    <pre id="staff-invite-result" class="mt-3 hidden whitespace-pre-wrap rounded-2xl border border-[#213138]/[0.06] bg-[#213138]/[0.03] p-3 text-xs"></pre>
+  </section>
+
+  <section id="alta-lote" class="nauka-glass-editorial mt-8 p-5 md:p-7">
+    <h2 class="font-display text-xl text-[#213138]">Registrar o actualizar lote</h2>
+    <p class="nauka-ui-display mt-2 text-sm text-[#5c6569]">
+      Catálogo y responsable (solicitante). Si el lote existe, se actualiza titular y responsable.
+    </p>
+    {lotesCatalog.length > 0 && (
+      <p class="nauka-ui-display mt-2 text-xs text-[#3d5c4a]">Lotes en catálogo: {lotesCatalog.length}</p>
+    )}
+    <form id="lote-form" class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <label class="block md:col-span-2">
+        <span class="nauka-label-lux">Complejo</span>
+        {complejos.length === 0 ? (
+          <p class="nauka-ui-display mt-2 text-sm text-[#9a6b5c]">No hay complejos disponibles. Revisa la base de datos.</p>
+        ) : (
+          <select name="complejo_id" class="nauka-input-lux text-sm" required>
+            {complejos.map((c) => (
+              <option value={c.id}>
+                {c.nombre} ({c.id})
+              </option>
+            ))}
+          </select>
+        )}
+      </label>
+      <label class="block">
+        <span class="nauka-label-lux">Número de lote</span>
+        <input name="lot_number" type="text" required class="nauka-input-lux text-sm" placeholder="Ej. A-22" />
+      </label>
+      <label class="block">
+        <span class="nauka-label-lux">Titular (opcional)</span>
+        <input name="owner_name" type="text" class="nauka-input-lux text-sm" placeholder="Nombre en expediente" />
+      </label>
+      <label class="block md:col-span-2">
+        <span class="nauka-label-lux">Responsable (solicitante)</span>
+        <select name="responsable_profile_id" class="nauka-input-lux text-sm">
+          <option value="">— Sin asignar —</option>
+          {solicitantes.map((s) => (
+            <option value={s.id}>
+              {(s.full_name ?? s.id).slice(0, 48)}
+              {s.lot_number ? ` · lote ${s.lot_number}` : ""} · {s.complejo_id}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div class="md:col-span-2">
+        <button type="submit" class="nauka-btn-primary h-11 rounded-2xl px-6 text-sm font-semibold">Guardar lote</button>
+        <p id="lote-form-msg" class="nauka-ui-display mt-3 hidden text-sm text-[#3d5c4a]"></p>
+      </div>
+    </form>
+  </section>
+
+  <section id="perfiles" class="mt-10 space-y-2">
+    <h2 class="font-display text-xl text-[#213138]">Perfiles recientes</h2>
+    {(profiles ?? []).map((p) => (
+      <div class="nauka-glass-editorial flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+        <div>
+          <p class="font-semibold text-[#213138]">{p.full_name ?? p.id}</p>
+          <p class="text-[#5c6569]">
+            {p.role} · {p.complejo_id} · lote {p.lot_number ?? "—"} · {p.onboarding_status}
+          </p>
+          {p.role === "solicitante" && (
+            <p class="mt-1 text-xs text-[#5c6569]">
+              Expediente: foto {p.photo_storage_path ? "✓" : "—"} · INE {p.ine_storage_path ? "✓" : "—"}
+            </p>
+          )}
+        </div>
+        {p.onboarding_status !== "activo" && (
+          <button
+            type="button"
+            data-approve-id={p.id}
+            class="approve-btn rounded-full border border-[#3d5c4a]/20 bg-[rgba(61,92,74,0.1)] px-3 py-2 text-xs font-semibold text-[#3d5c4a] transition duration-[400ms] ease-in-out hover:bg-[rgba(61,92,74,0.16)]"
+          >
+            Marcar activo
+          </button>
+        )}
+      </div>
+    ))}
+  </section>
+
+  <p class="mt-10 text-center text-sm text-[#5c6569]">
+    <a href="/admin/dashboard" class="font-semibold text-[#3d5c4a] underline underline-offset-2">← Volver al resumen</a>
+  </p>
+</AppLayout>
+
+<script is:inline>
+  const bindInviteForm = (formId, resultId) => {
+    const form = document.getElementById(formId);
+    const result = document.getElementById(resultId);
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!(form instanceof HTMLFormElement)) return;
+      const fd = new FormData(form);
+      const res = await fetch("/api/super-admin/invite", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error ?? "Error al crear usuario");
+        if (data.partial && data.userId && result) {
+          result.classList.remove("hidden");
+          result.textContent = JSON.stringify(data, null, 2);
+        }
+        return;
+      }
+      if (result) {
+        result.classList.remove("hidden");
+        result.textContent = JSON.stringify(data, null, 2);
+      }
+      alert("Usuario creado. Copia la contraseña temporal del recuadro.");
+    });
+  };
+  bindInviteForm("solicitante-form", "solicitante-result");
+  bindInviteForm("staff-invite-form", "staff-invite-result");
+
+  document.querySelectorAll(".approve-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-approve-id");
+      if (!id) return;
+      const res = await fetch("/api/super-admin/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "No se pudo aprobar");
+        return;
+      }
+      window.location.reload();
+    });
+  });
+
+  document.getElementById("lote-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    const msg = document.getElementById("lote-form-msg");
+    const fd = new FormData(form);
+    const body = {
+      complejo_id: fd.get("complejo_id"),
+      lot_number: fd.get("lot_number"),
+      owner_name: fd.get("owner_name") || null,
+      responsable_profile_id: fd.get("responsable_profile_id") || null
+    };
+    const res = await fetch("/api/super-admin/lotes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.error ?? "No se pudo guardar el lote");
+      return;
+    }
+    if (msg) {
+      msg.classList.remove("hidden");
+      msg.textContent = "Lote guardado.";
+    }
+    window.location.reload();
+  });
+</script>

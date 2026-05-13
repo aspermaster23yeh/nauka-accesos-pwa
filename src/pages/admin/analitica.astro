@@ -1,0 +1,162 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import { adminNav } from "../../lib/nav";
+import BlurText from "../../components/react/BlurText.jsx";
+import {
+  getEntradasTimeSeries,
+  getTopGuardiasAccesos,
+  getTopSolicitantesPorPases,
+  type AnalyticsBucketKind
+} from "../../lib/access";
+
+const bucketParam = Astro.url.searchParams.get("bucket") as AnalyticsBucketKind | null;
+const bucket: AnalyticsBucketKind =
+  bucketParam === "hour" || bucketParam === "week" || bucketParam === "month" ? bucketParam : "day";
+
+const [entradasSeries, topGuardias, topSolicitantes] = await Promise.all([
+  getEntradasTimeSeries(bucket, 45),
+  getTopGuardiasAccesos(30, 12),
+  getTopSolicitantesPorPases(30, 12)
+]);
+
+const maxEntrada = Math.max(...entradasSeries.map((x) => x.count), 1);
+---
+
+<AppLayout
+  wide
+  title="Analítica - Nauka Nayarit"
+  topBar={{ title: "Analítica", leftIcon: "arrow_back", leftHref: "/admin/dashboard", rightIcon: "menu", rightHref: "#" }}
+  navItems={adminNav}
+  activeNav="analitica"
+  pageTitle="Analítica de entradas"
+  bodyClass="bg-[#F9F8F6] text-[#213138]"
+  shellCanvasClass="nauka-soul-canvas"
+>
+  <BlurText
+    client:visible
+    text="Entradas autorizadas en caseta y rankings de guardias y solicitantes (ventanas móviles recientes)."
+    animateBy="words"
+    direction="top"
+    delay={90}
+    stepDuration={0.3}
+    className="-mt-3 mb-6 max-w-3xl text-sm leading-relaxed text-[#5c6569]"
+  />
+
+  <div class="mb-8 flex flex-wrap items-center gap-3">
+    <label class="text-xs font-semibold uppercase tracking-wider text-[#5c6569]">Agrupar por</label>
+    <select
+      id="analytics-bucket"
+      class="h-11 rounded-xl border border-[#213138]/10 bg-white px-4 text-sm font-semibold text-[#213138] outline-none"
+    >
+      <option value="hour" selected={bucket === "hour"}>Hora</option>
+      <option value="day" selected={bucket === "day"}>Día</option>
+      <option value="week" selected={bucket === "week"}>Semana (inicio lunes UTC)</option>
+      <option value="month" selected={bucket === "month"}>Mes</option>
+    </select>
+    <a href="/admin/dashboard" class="ml-auto text-sm font-semibold text-[#3d5c4a] underline underline-offset-2">← Resumen</a>
+  </div>
+
+  <section class="mb-10 rounded-2xl border border-[#213138]/[0.06] bg-white p-5 shadow-sm md:p-6">
+    <h2 class="text-sm font-bold uppercase tracking-[0.12em] text-[#5c6569]">Entradas por periodo</h2>
+    <div id="chart-bars" class="mt-6 flex max-h-[min(50vh,320px)] items-end gap-1 overflow-x-auto pb-2 md:gap-2">
+      {
+        entradasSeries.length === 0 ? (
+          <p class="w-full py-8 text-center text-sm text-[#5c6569]">Sin datos en el rango.</p>
+        ) : (
+          entradasSeries.map((row) => {
+            const h = Math.round((row.count / maxEntrada) * 100);
+            return (
+              <div class="flex min-w-[2.25rem] flex-1 flex-col items-center justify-end md:min-w-[2.75rem]">
+                <span class="mb-1 text-[0.65rem] font-semibold tabular-nums text-[#213138]">{row.count}</span>
+                <div
+                  class="w-full max-w-[3rem] rounded-t-lg bg-gradient-to-t from-[#3d5c4a]/40 to-[#3d5c4a] transition-all"
+                  style={`height: ${Math.max(h, 4)}px`}
+                  title={`${row.label}: ${row.count}`}
+                />
+                <span class="mt-2 max-w-full truncate text-[0.55rem] font-medium uppercase tracking-tight text-[#7a7e82] md:text-[0.6rem]">
+                  {row.label.length > 12 ? row.label.slice(0, 10) + "…" : row.label}
+                </span>
+              </div>
+            );
+          })
+        )
+      }
+    </div>
+  </section>
+
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <section class="rounded-2xl border border-[#213138]/[0.06] bg-white p-5 shadow-sm md:p-6">
+      <h2 class="text-sm font-bold uppercase tracking-[0.12em] text-[#5c6569]">Guardias · más accesos en caseta</h2>
+      <p class="mt-1 text-xs text-[#7a7e82]">Entradas y salidas autorizadas (últimos 30 días).</p>
+      <ul class="mt-4 space-y-3">
+        {topGuardias.length === 0 && <li class="text-sm text-[#5c6569]">Sin datos.</li>}
+        {topGuardias.map((g, i) => (
+          <li class="flex items-center justify-between gap-3 rounded-xl bg-[#213138]/[0.03] px-4 py-3">
+            <span class="flex items-center gap-3">
+              <span class="grid h-8 w-8 place-items-center rounded-full bg-[#213138]/10 text-xs font-bold text-[#213138]">
+                {i + 1}
+              </span>
+              <span class="font-medium text-[#213138]">{g.full_name ?? g.id.slice(0, 8)}</span>
+            </span>
+            <span class="tabular-nums text-lg font-semibold text-[#3d5c4a]">{g.count}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="rounded-2xl border border-[#213138]/[0.06] bg-white p-5 shadow-sm md:p-6">
+      <h2 class="text-sm font-bold uppercase tracking-[0.12em] text-[#5c6569]">Solicitantes · más pases creados</h2>
+      <p class="mt-1 text-xs text-[#7a7e82]">Altas de pase de visita (últimos 30 días).</p>
+      <ul class="mt-4 space-y-3">
+        {topSolicitantes.length === 0 && <li class="text-sm text-[#5c6569]">Sin datos.</li>}
+        {topSolicitantes.map((s, i) => (
+          <li class="flex items-center justify-between gap-3 rounded-xl bg-[#213138]/[0.03] px-4 py-3">
+            <span class="flex items-center gap-3">
+              <span class="grid h-8 w-8 place-items-center rounded-full bg-[#9a6b5c]/15 text-xs font-bold text-[#6b4f45]">
+                {i + 1}
+              </span>
+              <span class="font-medium text-[#213138]">{s.full_name ?? s.id.slice(0, 8)}</span>
+            </span>
+            <span class="tabular-nums text-lg font-semibold text-[#9a6b5c]">{s.count}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+</AppLayout>
+
+<script>
+  const sel = document.getElementById("analytics-bucket");
+  const chart = document.getElementById("chart-bars");
+
+  function renderBars(series: { label: string; count: number }[]) {
+    if (!chart) return;
+    const max = Math.max(...series.map((x) => x.count), 1);
+    if (!series.length) {
+      chart.innerHTML = `<p class="w-full py-8 text-center text-sm text-[#5c6569]">Sin datos en el rango.</p>`;
+      return;
+    }
+    chart.innerHTML = series
+      .map((row) => {
+        const h = Math.round((row.count / max) * 100);
+        const lab = row.label.length > 12 ? row.label.slice(0, 10) + "…" : row.label;
+        return `<div class="flex min-w-[2.25rem] flex-1 flex-col items-center justify-end md:min-w-[2.75rem]">
+          <span class="mb-1 text-[0.65rem] font-semibold tabular-nums text-[#213138]">${row.count}</span>
+          <div class="w-full max-w-[3rem] rounded-t-lg bg-gradient-to-t from-[#3d5c4a]/40 to-[#3d5c4a]" style="height:${Math.max(h, 4)}px" title="${row.label}: ${row.count}"></div>
+          <span class="mt-2 max-w-full truncate text-[0.55rem] font-medium uppercase tracking-tight text-[#7a7e82] md:text-[0.6rem]">${lab}</span>
+        </div>`;
+      })
+      .join("");
+  }
+
+  sel?.addEventListener("change", async () => {
+    const bucket = sel instanceof HTMLSelectElement ? sel.value : "day";
+    const res = await fetch(`/api/admin/analytics?bucket=${encodeURIComponent(bucket)}&sinceDays=45`);
+    if (!res.ok) return;
+    const data = await res.json();
+    renderBars(data.entradasSeries ?? []);
+    const u = new URL(window.location.href);
+    u.searchParams.set("bucket", bucket);
+    window.history.replaceState(null, "", u.toString());
+  });
+</script>

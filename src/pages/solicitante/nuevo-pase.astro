@@ -78,6 +78,13 @@ import AppLayout from "../../layouts/AppLayout.astro";
         <button id="share-whatsapp" type="button" class="mt-3 h-14 w-full rounded-2xl border border-[#3d5c4a]/20 bg-[rgba(61,92,74,0.1)] text-lg font-semibold text-[#2d4a3a] transition duration-[400ms] ease-in-out hover:bg-[rgba(61,92,74,0.16)]">
           Compartir por WhatsApp
         </button>
+        <a
+          id="go-inicio-after-pass"
+          href="/solicitante/inicio"
+          class="nauka-btn-primary mt-3 flex h-14 w-full items-center justify-center rounded-2xl text-base font-semibold"
+        >
+          Ir al panel de inicio
+        </a>
       </div>
     </div>
   </section>
@@ -170,7 +177,10 @@ import AppLayout from "../../layouts/AppLayout.astro";
       generatedPass.classList.remove("hidden");
       generatedPass.classList.add("ring-2", "ring-[#213138]/15");
     }
-    window.location.href = currentShareUrl;
+    const passForm = document.getElementById("pass-form");
+    if (passForm instanceof HTMLElement) passForm.classList.add("hidden");
+    const goInicio = document.getElementById("go-inicio-after-pass");
+    if (goInicio instanceof HTMLAnchorElement) goInicio.focus();
   });
 
   shareButton?.addEventListener("click", () => {

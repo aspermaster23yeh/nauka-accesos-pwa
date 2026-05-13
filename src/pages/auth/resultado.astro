@@ -1,13 +1,17 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
+import { getRoleHome } from "../../lib/role-home";
 import loginBackground from "../../../491461670_17919450432084004_8291959886084544470_n.jpg";
 
 const statusParam = Astro.url.searchParams.get("status");
 const isSuccess = statusParam === "success";
 const title = Astro.url.searchParams.get("title") ?? (isSuccess ? "Acceso registrado" : "Acceso no registrado");
 const message = Astro.url.searchParams.get("message") ?? Astro.url.searchParams.get("reason") ?? "No se pudo completar la operación.";
-const next = Astro.url.searchParams.get("next") ?? (isSuccess ? "/" : "/registro");
-const shouldAutoRedirect = isSuccess && Boolean(Astro.url.searchParams.get("next"));
+const roleHome = getRoleHome(Astro.locals.profile?.role);
+const explicitNext = Astro.url.searchParams.get("next");
+const next = explicitNext ?? (isSuccess ? roleHome : "/registro");
+const shouldAutoRedirect = isSuccess && Boolean(explicitNext);
+const primaryLabel = isSuccess ? (explicitNext ? "Continuar" : "Ir a mi panel") : "Reintentar registro";
 ---
 
 <AppLayout title="Resultado de Registro - Nauka Nayarit" bodyClass="bg-[#0f1f2a] text-[#1a1c1c]">
@@ -35,7 +39,7 @@ const shouldAutoRedirect = isSuccess && Boolean(Astro.url.searchParams.get("next
             isSuccess ? "bg-gradient-to-b from-[#006d36] to-[#005227]" : "bg-gradient-to-b from-[#213138] to-[#37474f]"
           }`}
         >
-          {isSuccess ? "Continuar" : "Reintentar registro"}
+          {primaryLabel}
         </a>
         <a href="/" class="block text-sm font-semibold text-[#213138] underline">Ir a iniciar sesión</a>
       </div>

@@ -90,6 +90,44 @@
   -webkit-backdrop-filter: blur(28px);
 }
 
+@media (min-width: 768px) {
+  #app-nav-sidebar.nav-rail-collapsed {
+    width: 4.75rem !important;
+    min-width: 4.75rem !important;
+    max-width: none;
+  }
+
+  #app-nav-sidebar.nav-rail-collapsed .nav-rail-brand-full {
+    display: none;
+  }
+
+  #app-nav-sidebar.nav-rail-collapsed .nav-rail-brand-letter {
+    display: inline !important;
+  }
+
+  #app-nav-sidebar.nav-rail-collapsed .nav-rail-filter-wrap {
+    display: none;
+  }
+
+  #app-nav-sidebar.nav-rail-collapsed .nav-rail-link-label,
+  #app-nav-sidebar.nav-rail-collapsed .nav-rail-account-text,
+  #app-nav-sidebar.nav-rail-collapsed .nav-rail-account-icon {
+    display: none !important;
+  }
+
+  #app-nav-sidebar.nav-rail-collapsed .app-nav-link {
+    justify-content: center;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  #app-nav-sidebar.nav-rail-collapsed #app-nav-account-trigger {
+    justify-content: center;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+}
+
 /* Aero data cards — float over bone */
 .nauka-card-aero {
   border-radius: 20px;

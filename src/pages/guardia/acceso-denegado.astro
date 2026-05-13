@@ -20,7 +20,13 @@ const reason = Astro.url.searchParams.get("reason") ?? "Codigo expirado";
       <p class="mt-1 text-lg font-medium text-[#6b4f45]">{reason}</p>
       <div class="mt-8 space-y-3">
         <a href="/guardia/escaner" class="nauka-btn-primary flex h-14 w-full items-center justify-center rounded-2xl text-lg font-semibold">
-          Escanear otro código
+          Volver al escáner
+        </a>
+        <a
+          href="/"
+          class="flex h-12 w-full items-center justify-center rounded-2xl border border-[#213138]/10 bg-white/90 text-base font-semibold text-[#213138] transition hover:bg-[#213138]/[0.04]"
+        >
+          Ir a la página principal
         </a>
         <button type="button" class="h-14 w-full rounded-2xl border border-[#213138]/10 bg-[#213138]/[0.04] text-lg font-semibold text-[#213138] transition duration-[400ms] ease-in-out hover:bg-[#213138]/[0.07]">
           Reportar incidente

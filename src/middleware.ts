@@ -1,4 +1,5 @@
 import { defineMiddleware } from "astro:middleware";
+import { getRoleHome } from "./lib/role-home";
 import { getProfileForUser, getUserFromAccessToken, type AppRole, type UserProfile } from "./lib/supabase";
 import { isPlatformAdmin } from "./lib/admin-access";
 
@@ -28,12 +29,6 @@ function isPublicPath(pathname: string): boolean {
 
 function isOnboardingPath(pathname: string): boolean {
   return pathname.startsWith("/onboarding/") || pathname.startsWith("/api/onboarding");
-}
-
-function roleHome(role: AppRole): string {
-  if (role === "super_admin" || role === "admin") return "/admin/dashboard";
-  if (role === "guardia") return "/guardia/escaner";
-  return "/solicitante/inicio";
 }
 
 function needsTermsAcceptance(profile: UserProfile): boolean {
@@ -146,10 +141,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (requiredRole === "admin" && !isPlatformAdmin(profile.role)) {
-      return context.redirect(roleHome(profile.role));
+      return context.redirect(getRoleHome(profile.role));
     }
     if (requiredRole !== "admin" && profile.role !== requiredRole) {
-      return context.redirect(roleHome(profile.role));
+      return context.redirect(getRoleHome(profile.role));
     }
     return next();
   } catch {

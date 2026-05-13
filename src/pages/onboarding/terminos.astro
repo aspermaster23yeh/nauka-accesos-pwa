@@ -1,5 +1,8 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import { getRoleHome } from "../../lib/role-home";
+
+const termsFallbackHome = getRoleHome(Astro.locals.profile?.role);
 ---
 
 <MainLayout title="Términos y condiciones - Nauka">
@@ -11,7 +14,7 @@ import MainLayout from "../../layouts/MainLayout.astro";
     <p class="mt-3 text-sm leading-relaxed text-[#5c6569]">
       El incumplimiento puede conllevar la suspensión de tu cuenta y las acciones que correspondan según el reglamento del complejo.
     </p>
-    <form id="accept-form" class="mt-8 space-y-5">
+    <form id="accept-form" class="mt-8 space-y-5" data-fallback-home={termsFallbackHome}>
       <label class="flex items-start gap-3 text-sm text-[#213138]">
         <input type="checkbox" id="accept-check" class="mt-1 h-4 w-4 rounded border-[#213138]/25 text-[#213138] focus:ring-[#213138]/20" required />
         <span>He leído y acepto los términos y la responsabilidad descrita.</span>
@@ -36,6 +39,8 @@ import MainLayout from "../../layouts/MainLayout.astro";
       return;
     }
     const data = await res.json().catch(() => ({}));
-    window.location.href = typeof data.redirect === "string" ? data.redirect : "/";
+    const formEl = document.getElementById("accept-form");
+    const fallback = formEl instanceof HTMLFormElement ? formEl.dataset.fallbackHome : "";
+    window.location.href = typeof data.redirect === "string" ? data.redirect : fallback || "/";
   });
 </script>

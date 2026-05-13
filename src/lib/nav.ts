@@ -12,7 +12,10 @@ export const guardNav: BottomNavItem[] = [
 ];
 
 export const adminNav: BottomNavItem[] = [
-  { id: "dashboard", label: "Dashboard", icon: "monitoring", href: "/admin/dashboard" },
+  { id: "dashboard", label: "Resumen", icon: "dashboard", href: "/admin/dashboard" },
+  { id: "analitica", label: "Analítica", icon: "analytics", href: "/admin/analitica" },
+  { id: "actividad", label: "Actividad", icon: "timeline", href: "/admin/actividad" },
   { id: "bitacora", label: "Bitácora", icon: "history", href: "/admin/bitacora" },
-  { id: "incidentes", label: "Incidentes", icon: "warning", href: "/admin/dashboard#incidentes" }
+  { id: "operaciones", label: "Altas", icon: "group_add", href: "/admin/operaciones" },
+  { id: "incidentes", label: "Incidentes", icon: "warning", href: "/admin/incidentes" }
 ];

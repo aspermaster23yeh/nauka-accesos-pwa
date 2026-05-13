@@ -1,0 +1,379 @@
+---
+import AppLayout from "../../layouts/AppLayout.astro";
+import { adminNav } from "../../lib/nav";
+import { getSuperAdminActivityEnriched, getLotesWithResponsables, type SuperAdminMovementRow, type LoteKpiRow, type LoteCatalogRow } from "../../lib/access";
+
+let movements: SuperAdminMovementRow[] = [];
+let lotKpis: LoteKpiRow[] = [];
+let lotesCatalog: LoteCatalogRow[] = [];
+
+try {
+  const [act, lotes] = await Promise.all([getSuperAdminActivityEnriched(180), getLotesWithResponsables()]);
+  movements = act.movements;
+  lotKpis = act.lotKpis;
+  lotesCatalog = lotes;
+} catch {
+  /* esquema o red */
+}
+
+const maxLoteCount = Math.max(...lotKpis.map((k) => k.count24h), 1);
+
+function tipoMovimientoLabel(t: string | null | undefined) {
+  const v = (t ?? "").toLowerCase();
+  if (v === "entrada") return "Entrada";
+  if (v === "salida") return "Salida";
+  if (v === "validacion") return "Validación QR";
+  if (v === "incidente") return "Incidente";
+  return v ? v.toUpperCase() : "Movimiento";
+}
+---
+
+<AppLayout
+  wide
+  title="Actividad - Nauka Nayarit"
+  topBar={{ title: "Actividad", leftIcon: "arrow_back", leftHref: "/admin/dashboard", rightIcon: "menu", rightHref: "#" }}
+  navItems={adminNav}
+  activeNav="actividad"
+  pageTitle="Actividad en vivo"
+  bodyClass="bg-[#F9F8F6] text-[#213138]"
+  shellCanvasClass="nauka-soul-canvas"
+>
+  <p class="-mt-3 mb-8 max-w-2xl text-sm text-[#5c6569]">
+    Tablero de movimientos en caseta y KPI por lote (24 h). Se actualiza desde el panel en vivo.
+  </p>
+
+  <section class="mb-10" aria-label="Alertas de caseta">
+    <div
+      id="caseta-alerts-banner"
+      class="mb-3 hidden rounded-2xl border border-[#3d5c4a]/25 bg-[rgba(61,92,74,0.1)] px-4 py-3 text-sm font-semibold text-[#2d4a3a]"
+      role="status"
+    >
+      Nuevo movimiento registrado en caseta (entrada o salida). Revisa la lista siguiente.
+    </div>
+    <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 class="font-display text-xl tracking-[-0.02em] text-[#213138] md:text-2xl">Notificaciones · caseta</h2>
+        <p class="nauka-ui-display text-xs font-medium text-[#5c6569] md:text-sm">
+          Entradas y salidas autorizadas por el escáner de guardia (se actualiza con el panel en vivo).
+        </p>
+      </div>
+    </div>
+    <ul id="caseta-alerts-list" class="grid grid-cols-1 gap-2 md:grid-cols-2"></ul>
+  </section>
+
+  <section id="panel-vivo">
+    <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 class="font-display text-xl tracking-[-0.02em] text-[#213138] md:text-2xl">Movimientos y lotes</h2>
+        <p class="nauka-ui-display text-xs font-medium text-[#5c6569] md:text-sm">
+          Detalle de acciones (24 h). <span id="live-updated-label" class="text-[#3d5c4a]"></span>
+        </p>
+      </div>
+      <button
+        type="button"
+        id="live-refresh-btn"
+        class="nauka-ui-display h-9 shrink-0 rounded-full border border-[#213138]/12 bg-white/80 px-4 text-xs font-semibold text-[#213138] backdrop-blur-md"
+      >
+        Actualizar ahora
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-8 xl:grid-cols-5 xl:gap-10">
+      <div class="xl:col-span-3">
+        <div class="nauka-glass-editorial overflow-hidden">
+          <div class="max-h-[min(70vh,520px)] overflow-auto">
+            <table class="nauka-ui-display w-full min-w-[860px] border-collapse text-left text-xs">
+              <thead class="sticky top-0 z-[1] bg-white/90 backdrop-blur-md">
+                <tr class="border-b border-[#213138]/[0.08] text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-[#5c6569]">
+                  <th class="whitespace-nowrap px-3 py-3">Cuándo</th>
+                  <th class="px-3 py-3">Complejo</th>
+                  <th class="px-3 py-3">Evento</th>
+                  <th class="px-3 py-3">Visitante</th>
+                  <th class="px-3 py-3">Lote</th>
+                  <th class="px-3 py-3">Resultado</th>
+                  <th class="px-3 py-3">Solicitante</th>
+                  <th class="px-3 py-3">Guardia</th>
+                  <th class="min-w-[8rem] px-3 py-3">Motivo / notas</th>
+                  <th class="min-w-[7rem] px-3 py-3">Detalle</th>
+                </tr>
+              </thead>
+              <tbody id="live-feed-body" class="divide-y divide-[#213138]/[0.06] text-[#213138]">
+                {
+                  movements.length === 0 ? (
+                    <tr>
+                      <td colspan="10" class="px-3 py-8 text-center text-sm text-[#5c6569]">
+                        Sin movimientos en las últimas 24 h.
+                      </td>
+                    </tr>
+                  ) : (
+                    movements.map((row) => (
+                      <tr class="align-top transition hover:bg-[#213138]/[0.02]">
+                        <td class="whitespace-nowrap px-3 py-2.5 text-[#5c6569]">{new Date(row.created_at).toLocaleString("es-MX")}</td>
+                        <td class="px-3 py-2.5">{row.complejo_id}</td>
+                        <td class="px-3 py-2.5">{tipoMovimientoLabel(row.tipo_evento)}</td>
+                        <td class="px-3 py-2.5 font-medium">{row.visitante_nombre ?? "—"}</td>
+                        <td class="px-3 py-2.5">{row.lote_number ?? "—"}</td>
+                        <td class="px-3 py-2.5">{row.resultado}</td>
+                        <td class="px-3 py-2.5">{row.solicitante_nombre ?? "—"}</td>
+                        <td class="px-3 py-2.5">{row.guardia_nombre ?? "—"}</td>
+                        <td class="max-w-[14rem] px-3 py-2.5 text-[#5c6569]">
+                          {(row.motivo ?? row.notas ?? row.razon ?? "—") as string}
+                        </td>
+                        <td class="px-3 py-2.5">
+                          <a
+                            href={`/admin/detalle-movimiento?id=${encodeURIComponent(row.id)}`}
+                            class="font-semibold text-[#3d5c4a] underline decoration-[#3d5c4a]/30 underline-offset-2"
+                          >
+                            Ver
+                          </a>
+                        </td>
+                      </tr>
+                    ))
+                  )
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="kpi-lotes" class="xl:col-span-2">
+        <h3 class="nauka-ui-display text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#5c6569]">Por lote · 24 h</h3>
+        <p class="nauka-ui-display mt-1 text-xs text-[#5c6569]">Intensidad en bitácora y última acción por lote catalogado.</p>
+        <ul id="lote-kpi-list" class="mt-4 space-y-4">
+          {
+            lotesCatalog.length === 0 && lotKpis.length === 0 ? (
+              <li class="nauka-ui-display nauka-glass-editorial p-4 text-sm text-[#5c6569]">Aún no hay lotes registrados ni actividad reciente.</li>
+            ) : (
+              <>
+                {lotesCatalog.map((lot) => {
+                  const k = lotKpis.find((x) => x.complejo_id === lot.complejo_id && (x.lot_number ?? "") === lot.lot_number);
+                  const count = k?.count24h ?? 0;
+                  const pct = Math.round((count / maxLoteCount) * 100);
+                  return (
+                    <li class="nauka-glass-editorial px-4 py-4">
+                      <div class="flex items-start justify-between gap-2">
+                        <div>
+                          <p class="nauka-ui-display text-sm font-semibold text-[#213138]">
+                            Lote {lot.lot_number}
+                            <span class="font-normal text-[#5c6569]"> · {lot.complejo_id}</span>
+                          </p>
+                          {lot.owner_name && <p class="nauka-ui-display text-xs text-[#5c6569]">Titular: {lot.owner_name}</p>}
+                          <p class="nauka-ui-display text-xs text-[#3d5c4a]">Responsable: {lot.responsable_nombre ?? "Sin asignar"}</p>
+                        </div>
+                        <span class="nauka-ui-display tabular-nums text-lg font-semibold text-[#213138]">{count}</span>
+                      </div>
+                      <div class="mt-3 h-2 overflow-hidden rounded-full bg-[#213138]/[0.06]">
+                        <div
+                          class="h-full rounded-full bg-gradient-to-r from-[#3d5c4a]/35 to-[#3d5c4a]/70 transition-all duration-[400ms] ease-out"
+                          style={`width: ${pct}%`}
+                        />
+                      </div>
+                      {k && (
+                        <p class="nauka-ui-display mt-2 text-[0.7rem] leading-snug text-[#5c6569]">
+                          Último: {new Date(k.lastAt).toLocaleString("es-MX")} — {k.lastSummary}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+                {lotKpis
+                  .filter((k) => !lotesCatalog.some((l) => l.complejo_id === k.complejo_id && l.lot_number === (k.lot_number ?? "")))
+                  .map((k) => {
+                    const pct = Math.round((k.count24h / maxLoteCount) * 100);
+                    return (
+                      <li class="nauka-glass-editorial border border-dashed border-[#213138]/10 px-4 py-4">
+                        <div class="flex items-start justify-between gap-2">
+                          <p class="nauka-ui-display text-sm font-semibold text-[#213138]">
+                            {k.lot_number ?? "Sin lote"} <span class="font-normal text-[#5c6569]">· {k.complejo_id}</span>
+                            <span class="ml-1 text-[0.65rem] font-normal uppercase tracking-wider text-[#9a6b5c]">No catalogado</span>
+                          </p>
+                          <span class="nauka-ui-display tabular-nums text-lg font-semibold">{k.count24h}</span>
+                        </div>
+                        <div class="mt-3 h-2 overflow-hidden rounded-full bg-[#213138]/[0.06]">
+                          <div class="h-full rounded-full bg-gradient-to-r from-[#9a6b5c]/25 to-[#9a6b5c]/55" style={`width: ${pct}%`} />
+                        </div>
+                        <p class="nauka-ui-display mt-2 text-[0.7rem] text-[#5c6569]">
+                          Último: {new Date(k.lastAt).toLocaleString("es-MX")} — {k.lastSummary}
+                        </p>
+                      </li>
+                    );
+                  })}
+              </>
+            )
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p class="mt-10 text-center text-sm text-[#5c6569]">
+    <a href="/admin/dashboard" class="font-semibold text-[#3d5c4a] underline underline-offset-2">← Volver al resumen</a>
+    ·
+    <a href="/admin/bitacora" class="font-semibold text-[#3d5c4a] underline underline-offset-2">Bitácora completa</a>
+  </p>
+</AppLayout>
+
+<script is:inline>
+  const esc = (s) => {
+    if (s == null || s === undefined) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  };
+
+  function tipoLabel(t) {
+    const v = String(t ?? "").toLowerCase();
+    if (v === "entrada") return "Entrada";
+    if (v === "salida") return "Salida";
+    if (v === "validacion") return "Validación QR";
+    if (v === "incidente") return "Incidente";
+    return v ? v.toUpperCase() : "—";
+  }
+
+  function renderMovements(rows) {
+    const tb = document.getElementById("live-feed-body");
+    if (!tb) return;
+    if (!rows.length) {
+      tb.innerHTML = `<tr><td colspan="10" class="px-3 py-8 text-center text-sm text-[#5c6569]">Sin movimientos en las últimas 24 h.</td></tr>`;
+      return;
+    }
+    tb.innerHTML = rows
+      .map(
+        (row) => `<tr class="align-top transition hover:bg-[#213138]/[0.02]">
+        <td class="whitespace-nowrap px-3 py-2.5 text-[#5c6569]">${esc(new Date(row.created_at).toLocaleString("es-MX"))}</td>
+        <td class="px-3 py-2.5">${esc(row.complejo_id)}</td>
+        <td class="px-3 py-2.5">${esc(tipoLabel(row.tipo_evento))}</td>
+        <td class="px-3 py-2.5 font-medium">${esc(row.visitante_nombre ?? "—")}</td>
+        <td class="px-3 py-2.5">${esc(row.lote_number ?? "—")}</td>
+        <td class="px-3 py-2.5">${esc(row.resultado)}</td>
+        <td class="px-3 py-2.5">${esc(row.solicitante_nombre ?? "—")}</td>
+        <td class="px-3 py-2.5">${esc(row.guardia_nombre ?? "—")}</td>
+        <td class="max-w-[14rem] px-3 py-2.5 text-[#5c6569]">${esc(row.motivo ?? row.notas ?? row.razon ?? "—")}</td>
+        <td class="px-3 py-2.5"><a href="/admin/detalle-movimiento?id=${encodeURIComponent(row.id)}" class="font-semibold text-[#3d5c4a] underline decoration-[#3d5c4a]/30 underline-offset-2">Ver</a></td>
+      </tr>`
+      )
+      .join("");
+  }
+
+  function renderLoteKpis(lotKpis, lotesCatalog) {
+    const ul = document.getElementById("lote-kpi-list");
+    if (!ul) return;
+    const maxC = Math.max(...lotKpis.map((k) => k.count24h), 1);
+    const blocks = [];
+    const findK = (cid, lotNum) => lotKpis.find((x) => x.complejo_id === cid && (x.lot_number ?? "") === lotNum);
+    for (const lot of lotesCatalog) {
+      const k = findK(lot.complejo_id, lot.lot_number);
+      const count = k ? k.count24h : 0;
+      const pct = Math.round((count / maxC) * 100);
+      const last = k
+        ? `<p class="nauka-ui-display mt-2 text-[0.7rem] leading-snug text-[#5c6569]">Último: ${esc(new Date(k.lastAt).toLocaleString("es-MX"))} — ${esc(k.lastSummary)}</p>`
+        : "";
+      blocks.push(`<li class="nauka-glass-editorial px-4 py-4">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="nauka-ui-display text-sm font-semibold text-[#213138]">Lote ${esc(lot.lot_number)} <span class="font-normal text-[#5c6569]"> · ${esc(lot.complejo_id)}</span></p>
+            ${lot.owner_name ? `<p class="nauka-ui-display text-xs text-[#5c6569]">Titular: ${esc(lot.owner_name)}</p>` : ""}
+            <p class="nauka-ui-display text-xs text-[#3d5c4a]">Responsable: ${esc(lot.responsable_nombre ?? "Sin asignar")}</p>
+          </div>
+          <span class="nauka-ui-display tabular-nums text-lg font-semibold text-[#213138]">${count}</span>
+        </div>
+        <div class="mt-3 h-2 overflow-hidden rounded-full bg-[#213138]/[0.06]">
+          <div class="h-full rounded-full bg-gradient-to-r from-[#3d5c4a]/35 to-[#3d5c4a]/70" style="width:${pct}%"></div>
+        </div>
+        ${last}
+      </li>`);
+    }
+    const catalogKeys = new Set(lotesCatalog.map((l) => `${l.complejo_id}::${l.lot_number}`));
+    for (const k of lotKpis) {
+      const key = `${k.complejo_id}::${k.lot_number ?? ""}`;
+      if (catalogKeys.has(key)) continue;
+      const pct = Math.round((k.count24h / maxC) * 100);
+      blocks.push(`<li class="nauka-glass-editorial border border-dashed border-[#213138]/10 px-4 py-4">
+        <div class="flex items-start justify-between gap-2">
+          <p class="nauka-ui-display text-sm font-semibold text-[#213138]">${esc(k.lot_number ?? "Sin lote")} <span class="font-normal text-[#5c6569]">· ${esc(k.complejo_id)}</span>
+            <span class="ml-1 text-[0.65rem] font-normal uppercase tracking-wider text-[#9a6b5c]">No catalogado</span></p>
+          <span class="nauka-ui-display tabular-nums text-lg font-semibold">${k.count24h}</span>
+        </div>
+        <div class="mt-3 h-2 overflow-hidden rounded-full bg-[#213138]/[0.06]">
+          <div class="h-full rounded-full bg-gradient-to-r from-[#9a6b5c]/25 to-[#9a6b5c]/55" style="width:${pct}%"></div>
+        </div>
+        <p class="nauka-ui-display mt-2 text-[0.7rem] text-[#5c6569]">Último: ${esc(new Date(k.lastAt).toLocaleString("es-MX"))} — ${esc(k.lastSummary)}</p>
+      </li>`);
+    }
+    if (!blocks.length) {
+      ul.innerHTML = `<li class="nauka-ui-display nauka-glass-editorial p-4 text-sm text-[#5c6569]">Aún no hay lotes registrados ni actividad reciente.</li>`;
+    } else {
+      ul.innerHTML = blocks.join("");
+    }
+  }
+
+  let casetaNotifInitialized = false;
+  const knownCasetaNotifIds = new Set();
+
+  function renderCasetaAlerts(rows) {
+    const list = document.getElementById("caseta-alerts-list");
+    const banner = document.getElementById("caseta-alerts-banner");
+    if (!list) return;
+    let newlyAdded = false;
+    for (const r of rows) {
+      if (casetaNotifInitialized && r.id && !knownCasetaNotifIds.has(r.id)) newlyAdded = true;
+      if (r.id) knownCasetaNotifIds.add(r.id);
+    }
+    casetaNotifInitialized = true;
+    if (banner) banner.classList.toggle("hidden", !newlyAdded);
+
+    if (!rows.length) {
+      list.innerHTML =
+        '<li class="nauka-ui-display col-span-full rounded-2xl border border-dashed border-[#213138]/10 bg-white/70 px-4 py-3 text-sm text-[#5c6569]">Sin alertas recientes de caseta.</li>';
+      return;
+    }
+    list.innerHTML = rows
+      .slice(0, 12)
+      .map((r) => {
+        const t = r.tipo === "salida" ? "Salida" : "Entrada";
+        const dot = r.tipo === "salida" ? "bg-[#9a6b5c]" : "bg-[#3d5c4a]";
+        const time = new Date(r.created_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
+        const detail = esc(r.visitante_nombre ?? "Visitante");
+        const lote = r.lote_number ? ` · Lote ${esc(r.lote_number)}` : "";
+        const comp = esc(r.complejo_id ?? "");
+        const href = r.bitacora_id
+          ? `/admin/detalle-movimiento?id=${encodeURIComponent(r.bitacora_id)}`
+          : "#";
+        return `<li>
+        <a href="${href}" class="flex items-start gap-3 rounded-2xl border border-[#213138]/[0.06] bg-white/85 px-4 py-3 transition hover:border-[#213138]/12 hover:bg-white">
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot}"></span>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#5c6569]">${t} · ${comp}</p>
+            <p class="nauka-ui-display mt-1 text-sm font-semibold text-[#213138]">${detail}${lote}</p>
+            <p class="mt-1 text-xs text-[#7a7e82]">${esc(time)}</p>
+          </div>
+        </a>
+      </li>`;
+      })
+      .join("");
+  }
+
+  async function refreshLive() {
+    const res = await fetch("/api/super-admin/live");
+    const label = document.getElementById("live-updated-label");
+    if (!res.ok) {
+      if (label) label.textContent = "No se pudo sincronizar.";
+      return;
+    }
+    const data = await res.json();
+    renderMovements(data.movements ?? []);
+    renderLoteKpis(data.lotKpis ?? [], data.lotesCatalog ?? []);
+    renderCasetaAlerts(data.casetaNotifications ?? []);
+    if (label && data.generatedAt) {
+      const t = new Date(data.generatedAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      label.textContent = `Sincronizado ${t}`;
+    }
+  }
+
+  document.getElementById("live-refresh-btn")?.addEventListener("click", () => refreshLive());
+  refreshLive();
+  setInterval(refreshLive, 28000);
+</script>

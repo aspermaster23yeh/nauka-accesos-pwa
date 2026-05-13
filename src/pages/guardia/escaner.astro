@@ -143,6 +143,21 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       >
         Volver al escáner
       </a>
+      <div
+        id="post-movimiento-exito"
+        class="mt-4 hidden rounded-2xl border border-[#3d5c4a]/25 bg-[rgba(61,92,74,0.1)] p-4 text-center"
+      >
+        <p class="text-sm font-semibold text-[#213138]">Movimiento registrado en bitácora.</p>
+        <a href="/guardia/escaner" class="nauka-btn-primary mt-3 flex h-11 w-full items-center justify-center rounded-2xl text-sm font-semibold">
+          Nueva lectura en caseta
+        </a>
+        <a
+          href="/"
+          class="mt-2 flex h-10 w-full items-center justify-center rounded-2xl text-xs font-semibold text-[#5c6569] underline underline-offset-2"
+        >
+          Ir a la portada
+        </a>
+      </div>
     </div>
   </section>
 </AppLayout>
@@ -622,6 +637,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   const okParam = new URLSearchParams(window.location.search).get("ok");
   if (okParam === "1") {
     setCameraStatus("Último movimiento enviado al panel del administrador.");
+    document.getElementById("post-movimiento-exito")?.classList.remove("hidden");
     const u = new URL(window.location.href);
     u.searchParams.delete("ok");
     window.history.replaceState(null, "", u.pathname + (u.search || ""));

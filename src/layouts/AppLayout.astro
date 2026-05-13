@@ -12,6 +12,8 @@ interface Props {
     title: string;
     leftIcon?: string;
     leftHref?: string;
+    /** Forzar enlace atrás vs menú hamburguesa (móvil) cuando hay `navItems` */
+    leftKind?: "link" | "nav-toggle";
     rightIcon?: string;
     rightHref?: string;
     rightButtonId?: string;
@@ -54,20 +56,31 @@ const roleHome =
     : profile?.role === "guardia"
       ? "/guardia/escaner"
       : "/solicitante/inicio";
+const inferredTopLeftKind: "link" | "nav-toggle" =
+  topBar?.leftKind ??
+  (navItems.length > 0 && isAuthenticated && (!topBar?.leftHref || topBar.leftHref === "#")
+    ? "nav-toggle"
+    : "link");
 const resolvedTopBar =
   topBar && isAuthenticated
     ? {
         ...topBar,
-        rightIcon: "menu",
+        leftKind: topBar.leftKind ?? inferredTopLeftKind,
+        rightIcon: "account_circle",
         rightHref: "#",
         rightButtonId: "sidebar-open"
       }
     : topBar;
+const showAppNavRail = isAuthenticated && navItems.length > 0;
 const roleLinks =
   profile?.role === "admin" || profile?.role === "super_admin"
     ? [
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/bitacora", label: "Bitácora" }
+        { href: "/admin/dashboard", label: "Resumen" },
+        { href: "/admin/analitica", label: "Analítica" },
+        { href: "/admin/actividad", label: "Actividad" },
+        { href: "/admin/bitacora", label: "Bitácora" },
+        { href: "/admin/operaciones", label: "Altas" },
+        { href: "/admin/incidentes", label: "Incidentes" }
       ]
     : profile?.role === "guardia"
       ? [
@@ -99,114 +112,323 @@ const roleLinks =
     />
   </head>
   <body class={`min-h-screen ${bodyClass}`}>
-    <div class:list={["mx-auto flex min-h-[100dvh] w-full flex-col", shellCanvasClass, shellMax]}>
-      {resolvedTopBar && <TopAppBar {...resolvedTopBar} />}
+    <div class:list={["mx-auto flex min-h-[100dvh] w-full", shellCanvasClass, showAppNavRail ? "max-w-full md:max-w-none" : shellMax, showAppNavRail && "md:flex-row"]}>
       {
-        isAuthenticated && (
+        showAppNavRail && (
           <>
             <div
-              id="sidebar-overlay"
-              class="pointer-events-none fixed inset-0 z-[70] bg-[#213138]/25 opacity-0 backdrop-blur-[2px] transition-opacity duration-[400ms] ease-in-out"
+              id="app-nav-overlay"
+              class="pointer-events-none fixed inset-0 z-[62] bg-[#213138]/20 opacity-0 backdrop-blur-[1px] transition-opacity duration-300 ease-out md:hidden"
+              aria-hidden="true"
             >
             </div>
             <aside
-              id="sidebar-panel"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Menú de cuenta"
-              class="nauka-glass-sidebar fixed right-0 top-0 z-[80] flex h-full w-[84%] max-w-[330px] translate-x-full flex-col p-5 shadow-[-16px_0_48px_rgba(33,49,56,0.08)] transition-transform duration-[400ms] ease-in-out"
+              id="app-nav-sidebar"
+              class:list={[
+                "nauka-glass-sidebar fixed left-0 top-0 z-[66] flex h-full w-[min(88vw,280px)] max-w-[320px] flex-col border-r border-[#213138]/[0.06] bg-[#FCFBF9]/95 p-4 shadow-[8px_0_32px_rgba(33,49,56,0.06)] transition-[transform,width] duration-300 ease-out max-md:-translate-x-full md:static md:z-10 md:h-[100dvh] md:max-w-none md:w-60 md:shrink-0 md:translate-x-0 md:shadow-none"
+              ]}
+              data-collapsed="false"
+              aria-label="Navegación principal"
             >
-              <div class="mb-5 flex items-start justify-between">
-                <div>
-                  <p class="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#5c6569]">{roleLabel}</p>
-                  <p class="mt-1 font-display text-xl text-[#213138]">{userName}</p>
-                </div>
+              <div class="relative mb-6 flex items-center justify-between gap-2 md:pr-6">
+                <a href={roleHome} class="min-w-0 font-display text-lg font-semibold tracking-tight text-[#213138] md:truncate">
+                  <span class="nav-rail-brand-full">Nauka</span>
+                  <span class="nav-rail-brand-letter hidden">N</span>
+                </a>
                 <button
-                  id="sidebar-close"
-                  class="grid h-9 w-9 place-items-center rounded-full bg-[#213138]/[0.06] text-[#213138] transition hover:bg-[#213138]/10"
-                  aria-label="Cerrar menu"
+                  type="button"
+                  id="app-nav-close"
+                  class="grid h-9 w-9 place-items-center rounded-full bg-[#213138]/[0.06] text-[#213138] md:hidden"
+                  aria-label="Cerrar menú"
                 >
-                  <span class="material-symbols-outlined">close</span>
+                  <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+                <button
+                  type="button"
+                  id="app-nav-collapse"
+                  class="absolute -right-1 top-1/2 hidden h-8 w-8 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-[#213138]/10 bg-white text-[#213138] shadow-sm md:flex"
+                  aria-label="Contraer barra lateral"
+                  aria-pressed="false"
+                >
+                  <span class="material-symbols-outlined app-nav-chevron text-lg transition-transform">chevron_left</span>
                 </button>
               </div>
 
-              <nav class="space-y-2">
-                <a href={roleHome} class="nauka-btn-primary flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold">
-                  <span class="material-symbols-outlined text-base">home</span>
-                  <span>Ir a mi inicio</span>
-                </a>
-                {roleLinks.map((item) => (
-                  <a
-                    href={item.href}
-                    class="block rounded-2xl border border-[#213138]/[0.06] bg-[#FCFBF9]/80 px-4 py-3 text-sm font-semibold text-[#213138] transition hover:border-[#213138]/12 hover:bg-white"
-                  >
-                    {item.label}
-                  </a>
-                ))}
+              <div class="nav-rail-filter-wrap relative mb-2">
+                <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7a7e82] text-xl">search</span>
+                <input
+                  type="search"
+                  placeholder="Buscar sección"
+                  class="app-nav-filter nav-rail-filter h-10 w-full rounded-xl border border-[#213138]/10 bg-white/80 pl-10 pr-3 text-sm text-[#213138] outline-none ring-0 placeholder:text-[#7a7e82]"
+                  autocomplete="off"
+                />
+              </div>
+
+              <nav class="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 pt-2">
+                {
+                  navItems.map((item) => {
+                    const active = item.id === inferredActiveNav;
+                    return (
+                      <a
+                        href={item.href}
+                        data-label={item.label.toLowerCase()}
+                        class:list={[
+                          "app-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+                          active ? "bg-[#213138]/10 text-[#213138]" : "text-[#5c6569] hover:bg-[#213138]/[0.05] hover:text-[#213138]"
+                        ]}
+                      >
+                        <span class="material-symbols-outlined shrink-0 text-[22px]">{item.icon}</span>
+                        <span class="nav-rail-link-label truncate">{item.label}</span>
+                      </a>
+                    );
+                  })
+                }
               </nav>
 
-              <div class="mt-auto border-t border-[#213138]/[0.06] pt-4">
-                <form method="post" action="/api/auth/logout">
-                  <button
-                    type="submit"
-                    class="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#9a6b5c] text-sm font-semibold text-[#FCFBF9] transition hover:opacity-95"
-                  >
-                    <span class="material-symbols-outlined text-base">logout</span>
-                    <span>Cerrar sesion</span>
-                  </button>
-                </form>
+              <div class="mt-4 border-t border-[#213138]/[0.06] pt-4">
+                <button
+                  type="button"
+                  id="app-nav-account-trigger"
+                  class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-[#213138]/[0.04]"
+                >
+                  <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#213138]/10 text-xs font-bold text-[#213138]">
+                    {(userName.slice(0, 1) || "?").toUpperCase()}
+                  </span>
+                  <div class="min-w-0 flex-1 nav-rail-account-text">
+                    <p class="truncate text-sm font-semibold text-[#213138]">{userName}</p>
+                    <span class="mt-0.5 inline-block rounded-full bg-[#3d5c4a]/15 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-[#2d4a3a]">
+                      {roleLabel}
+                    </span>
+                  </div>
+                  <span class="material-symbols-outlined nav-rail-account-icon shrink-0 text-[#5c6569]">account_circle</span>
+                </button>
               </div>
             </aside>
           </>
         )
       }
-      <main
-        class:list={[
-          "flex-1 px-4",
-          wide && "md:px-8",
-          navItems.length > 0 ? "pb-24" : "pb-6",
-          pageTitle ? "pt-6" : "pt-4"
-        ]}
-      >
+
+      <div class:list={["flex min-h-[100dvh] min-w-0 flex-1 flex-col", !showAppNavRail && shellMax, showAppNavRail && "mx-auto w-full max-w-[430px] md:max-w-6xl lg:max-w-7xl"]}>
+        {resolvedTopBar && <TopAppBar {...resolvedTopBar} />}
         {
-          pageTitle && (
-            <h1 class="font-display mb-2 text-3xl leading-[1.12] tracking-[-0.02em] text-[#213138] md:mb-3 md:text-[2.35rem]">{pageTitle}</h1>
+          isAuthenticated && (
+            <>
+              <div
+                id="sidebar-overlay"
+                class="pointer-events-none fixed inset-0 z-[70] bg-[#213138]/25 opacity-0 backdrop-blur-[2px] transition-opacity duration-[400ms] ease-in-out"
+              >
+              </div>
+              <aside
+                id="sidebar-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Menú de cuenta"
+                class="nauka-glass-sidebar fixed right-0 top-0 z-[80] flex h-full w-[84%] max-w-[330px] translate-x-full flex-col p-5 shadow-[-16px_0_48px_rgba(33,49,56,0.08)] transition-transform duration-[400ms] ease-in-out"
+              >
+                <div class="mb-5 flex items-start justify-between">
+                  <div>
+                    <p class="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#5c6569]">{roleLabel}</p>
+                    <p class="mt-1 font-display text-xl text-[#213138]">{userName}</p>
+                  </div>
+                  <button
+                    id="sidebar-close"
+                    class="grid h-9 w-9 place-items-center rounded-full bg-[#213138]/[0.06] text-[#213138] transition hover:bg-[#213138]/10"
+                    aria-label="Cerrar menu"
+                  >
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+
+                <nav class="space-y-2">
+                  <a href={roleHome} class="nauka-btn-primary flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold">
+                    <span class="material-symbols-outlined text-base">home</span>
+                    <span>Ir a mi inicio</span>
+                  </a>
+                  {roleLinks.map((item) => (
+                    <a
+                      href={item.href}
+                      class="block rounded-2xl border border-[#213138]/[0.06] bg-[#FCFBF9]/80 px-4 py-3 text-sm font-semibold text-[#213138] transition hover:border-[#213138]/12 hover:bg-white"
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </nav>
+
+                <div class="mt-auto border-t border-[#213138]/[0.06] pt-4">
+                  <form method="post" action="/api/auth/logout">
+                    <button
+                      type="submit"
+                      class="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#9a6b5c] text-sm font-semibold text-[#FCFBF9] transition hover:opacity-95"
+                    >
+                      <span class="material-symbols-outlined text-base">logout</span>
+                      <span>Cerrar sesion</span>
+                    </button>
+                  </form>
+                </div>
+              </aside>
+            </>
           )
         }
-        <slot />
-      </main>
-      {navItems.length > 0 && <BottomNav items={navItems} activeId={inferredActiveNav} wide={wide} />}
+        <main
+          class:list={[
+            "flex-1 px-4",
+            wide && "md:px-8",
+            navItems.length > 0 && !showAppNavRail ? "pb-24" : "pb-6",
+            pageTitle ? "pt-6" : "pt-4"
+          ]}
+        >
+          {
+            pageTitle && (
+              <h1 class="font-display mb-2 text-3xl leading-[1.12] tracking-[-0.02em] text-[#213138] md:mb-3 md:text-[2.35rem]">{pageTitle}</h1>
+            )
+          }
+          <slot />
+        </main>
+        {navItems.length > 0 && !showAppNavRail && <BottomNav items={navItems} activeId={inferredActiveNav} wide={wide} />}
+      </div>
     </div>
     {
       isAuthenticated && (
         <script>
           (function () {
+            const mqMd = window.matchMedia("(min-width: 768px)");
+
             const openButton = document.getElementById("sidebar-open");
             const closeButton = document.getElementById("sidebar-close");
             const panel = document.getElementById("sidebar-panel");
             const overlay = document.getElementById("sidebar-overlay");
-            if (!openButton || !closeButton || !panel || !overlay) return;
 
-            const openSidebar = () => {
+            const openAccount = () => {
+              if (!openButton || !panel || !overlay) return;
               panel.classList.remove("translate-x-full");
               overlay.classList.remove("opacity-0", "pointer-events-none");
               openButton.setAttribute("aria-expanded", "true");
             };
 
-            const closeSidebar = () => {
+            const closeAccount = () => {
+              if (!openButton || !panel || !overlay) return;
               panel.classList.add("translate-x-full");
               overlay.classList.add("opacity-0", "pointer-events-none");
               openButton.setAttribute("aria-expanded", "false");
             };
 
-            openButton.addEventListener("click", (e) => {
-              e.preventDefault();
-              openSidebar();
+            if (openButton && closeButton && panel && overlay) {
+              openButton.addEventListener("click", (e) => {
+                e.preventDefault();
+                openAccount();
+              });
+              closeButton.addEventListener("click", closeAccount);
+              overlay.addEventListener("click", closeAccount);
+            }
+
+            const appNav = document.getElementById("app-nav-sidebar");
+            const appOverlay = document.getElementById("app-nav-overlay");
+            const appOpen = document.getElementById("app-nav-open");
+            const appClose = document.getElementById("app-nav-close");
+            const appCollapse = document.getElementById("app-nav-collapse");
+            const appChevron = document.querySelector(".app-nav-chevron");
+            const appAccountTrigger = document.getElementById("app-nav-account-trigger");
+            const COLLAPSE_KEY = "nauka-app-nav-collapsed";
+
+            const setMobileDrawerOpen = (open: boolean) => {
+              if (!appNav || !appOverlay || !appOpen) return;
+              if (mqMd.matches) {
+                appNav.classList.remove("max-md:translate-x-0");
+                appNav.classList.add("max-md:-translate-x-full");
+                appOverlay.classList.add("opacity-0", "pointer-events-none");
+                appOpen.setAttribute("aria-expanded", "false");
+                return;
+              }
+              if (open) {
+                appNav.classList.remove("max-md:-translate-x-full");
+                appNav.classList.add("max-md:translate-x-0");
+                appOverlay.classList.remove("opacity-0", "pointer-events-none");
+                appOpen.setAttribute("aria-expanded", "true");
+              } else {
+                appNav.classList.remove("max-md:translate-x-0");
+                appNav.classList.add("max-md:-translate-x-full");
+                appOverlay.classList.add("opacity-0", "pointer-events-none");
+                appOpen.setAttribute("aria-expanded", "false");
+              }
+            };
+
+            const applyCollapsed = (collapsed: boolean) => {
+              if (!appNav || !appCollapse) return;
+              if (mqMd.matches) {
+                appNav.classList.toggle("nav-rail-collapsed", collapsed);
+              } else {
+                appNav.classList.remove("nav-rail-collapsed");
+              }
+              appNav.setAttribute("data-collapsed", mqMd.matches && collapsed ? "true" : "false");
+              appCollapse.setAttribute("aria-pressed", mqMd.matches && collapsed ? "true" : "false");
+              appCollapse.setAttribute("aria-label", mqMd.matches && collapsed ? "Expandir barra lateral" : "Contraer barra lateral");
+              if (appChevron) appChevron.classList.toggle("rotate-180", mqMd.matches && collapsed);
+              try {
+                localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
+              } catch (_) {}
+            };
+
+            if (appNav && appOpen && appOverlay) {
+              appOpen.addEventListener("click", (e) => {
+                e.preventDefault();
+                setMobileDrawerOpen(true);
+              });
+              appClose?.addEventListener("click", () => setMobileDrawerOpen(false));
+              appOverlay.addEventListener("click", () => setMobileDrawerOpen(false));
+              document.querySelectorAll("#app-nav-sidebar a.app-nav-link").forEach((a) => {
+                a.addEventListener("click", () => {
+                  if (!mqMd.matches) setMobileDrawerOpen(false);
+                });
+              });
+              mqMd.addEventListener("change", () => {
+                setMobileDrawerOpen(false);
+                if (!appNav || !appCollapse) return;
+                if (mqMd.matches) {
+                  try {
+                    applyCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
+                  } catch (_) {
+                    applyCollapsed(false);
+                  }
+                } else {
+                  appNav.classList.remove("nav-rail-collapsed");
+                  applyCollapsed(false);
+                }
+              });
+
+              if (appCollapse) {
+                let collapsed = false;
+                try {
+                  collapsed = localStorage.getItem(COLLAPSE_KEY) === "1";
+                } catch (_) {}
+                applyCollapsed(collapsed);
+                appCollapse.addEventListener("click", () => {
+                  if (!mqMd.matches) return;
+                  const next = !appNav.classList.contains("nav-rail-collapsed");
+                  applyCollapsed(next);
+                });
+              }
+
+              appAccountTrigger?.addEventListener("click", () => {
+                setMobileDrawerOpen(false);
+                openAccount();
+              });
+            }
+
+            const filterInput = document.querySelector(".app-nav-filter");
+            filterInput?.addEventListener("input", () => {
+              if (!(filterInput instanceof HTMLInputElement)) return;
+              const q = (filterInput.value || "").trim().toLowerCase();
+              document.querySelectorAll(".app-nav-link").forEach((el) => {
+                const lab = (el.getAttribute("data-label") || "").toLowerCase();
+                el.classList.toggle("hidden", q.length > 0 && !lab.includes(q));
+              });
             });
-            closeButton.addEventListener("click", closeSidebar);
-            overlay.addEventListener("click", closeSidebar);
+
             window.addEventListener("keydown", (event) => {
-              if (event.key === "Escape") closeSidebar();
+              if (event.key === "Escape") {
+                closeAccount();
+                setMobileDrawerOpen(false);
+              }
             });
           })();
         </script>
