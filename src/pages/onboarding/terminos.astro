@@ -13,7 +13,7 @@ const hasMail = contactHref !== "#";
 ---
 
 <MainLayout title="Términos y condiciones - Nauka">
-  <div class="nauka-card-aero mx-auto max-w-lg border border-[#213138]/[0.06] p-6 sm:p-8">
+  <div class="nauka-card-aero mx-auto w-full max-w-lg border border-[#213138]/[0.06] p-5 sm:max-w-2xl sm:p-8">
     <OnboardingSteps
       steps={[
         { label: "Cuenta", done: true },
@@ -22,37 +22,88 @@ const hasMail = contactHref !== "#";
       ]}
     />
 
-    <h2 class="font-display text-xl text-[#213138] sm:text-2xl">Responsabilidad en el acceso</h2>
-    <p class="mt-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#5c6569]">
-      {isGuardia ? "Perfil guardia" : "Perfil solicitante"}
-    </p>
+    <header class="border-b border-[#213138]/10 pb-4">
+      <p class="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#3d5c4a]">Nauka Accesos</p>
+      <h1 class="mt-1 font-display text-2xl leading-tight text-[#213138] sm:text-3xl">Términos y condiciones dentro de NAUKA</h1>
+      <p class="mt-3 text-base font-semibold leading-snug text-[#213138] sm:text-lg">Eres responsable de lo que haces en el acceso.</p>
+      <p class="mt-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#5c6569]">
+        {isGuardia ? "Perfil guardia" : "Perfil solicitante"}
+      </p>
+    </header>
 
-    <p class="mt-4 text-sm leading-relaxed text-[#5c6569]">
-      Al usar Nauka Accesos confirmas que la información que registras (incluida identificación oficial cuando aplique) es
-      veraz, y que cumplirás el reglamento del complejo sobre accesos y visitas.
-    </p>
-    {
-      isGuardia ? (
-        <p class="mt-3 text-sm leading-relaxed text-[#5c6569]">
-          Como <strong>guardia</strong>, validarás códigos y registrarás movimientos en caseta de forma imparcial; los
-          registros quedan en bitácora para auditoría.
+    <div class="mt-6 space-y-6 text-sm leading-relaxed text-[#5c6569]">
+      <section>
+        <h2 class="font-semibold text-[#213138]">Uso del sistema</h2>
+        <p class="mt-2">
+          Nauka Accesos es una herramienta del complejo para gestionar pases, validar códigos en caseta y llevar bitácora.
+          Al usarla te comprometes a hacerlo de buena fe, sin suplantar identidades ni manipular registros.
         </p>
-      ) : (
-        <p class="mt-3 text-sm leading-relaxed text-[#5c6569]">
-          Como <strong>solicitante</strong>, eres responsable de los pases que generas y de que cada visitante cumpla lo
-          acordado con administración.
+      </section>
+
+      <section>
+        <h2 class="font-semibold text-[#213138]">Veracidad de la información</h2>
+        <p class="mt-2">
+          Los datos que cargas (nombre de visitantes, motivos, fotos o identificación cuando el flujo lo pida) deben ser
+          correctos y estar alineados con las políticas del complejo. La información falsa o incompleta puede afectar la
+          seguridad de la comunidad y la trazabilidad de accesos.
         </p>
-      )
-    }
-    <p class="mt-3 text-sm leading-relaxed text-[#5c6569]">
-      El incumplimiento puede conllevar la suspensión de tu cuenta y las acciones que correspondan según el reglamento del
-      complejo.
-    </p>
+      </section>
+
+      <section>
+        <h2 class="font-semibold text-[#213138]">Registros y auditoría</h2>
+        <ul class="mt-2 list-disc space-y-1.5 pl-5 marker:text-[#3d5c4a]">
+          <li>Los movimientos en caseta (entrada y salida) quedan registrados en la bitácora con fecha, resultado y, en salida, evidencia cuando aplique.</li>
+          <li>Esa información puede ser consultada por administración para aclarar incidentes o cumplir obligaciones internas.</li>
+          <li>No debes compartir tu sesión ni permitir que otra persona opere con tu usuario.</li>
+        </ul>
+      </section>
+
+      {
+        isGuardia ? (
+          <section>
+            <h2 class="font-semibold text-[#213138]">Reglas específicas — guardia</h2>
+            <ul class="mt-2 list-disc space-y-1.5 pl-5 marker:text-[#3d5c4a]">
+              <li>Valida el código o token del pase antes de registrar entrada o salida.</li>
+              <li>En check-out, la evidencia fotográfica que solicita el complejo forma parte del registro; úsala solo con fines operativos autorizados.</li>
+              <li>Registra el resultado real del acceso (autorizado o denegado) de forma imparcial.</li>
+            </ul>
+          </section>
+        ) : (
+          <section>
+            <h2 class="font-semibold text-[#213138]">Reglas específicas — solicitante</h2>
+            <ul class="mt-2 list-disc space-y-1.5 pl-5 marker:text-[#3d5c4a]">
+              <li>Eres responsable de los pases que creas y de que quien visite cumpla lo acordado con administración y el reglamento.</li>
+              <li>No generes pases para personas o fines no autorizados.</li>
+              <li>Mantén actualizados los datos del visitante y las fechas de vigencia según corresponda.</li>
+            </ul>
+          </section>
+        )
+      }
+
+      <section>
+        <h2 class="font-semibold text-[#213138]">Incumplimiento y suspensión</h2>
+        <p class="mt-2">
+          El uso indebido del sistema, el incumplimiento del reglamento del complejo o conductas que pongan en riesgo la
+          integridad de los registros pueden conllevar la <strong class="font-semibold text-[#213138]">suspensión de la cuenta</strong> y las medidas que administración determine.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-semibold text-[#213138]">Aceptación</h2>
+        <p class="mt-2">
+          Al marcar la casilla y continuar confirmas que leíste lo anterior y que asumes la responsabilidad que corresponde a
+          tu rol en el control de accesos.
+        </p>
+      </section>
+    </div>
 
     <form id="accept-form" class="mt-8 space-y-5" data-fallback-home={termsFallbackHome}>
       <label class="flex items-start gap-3 text-sm text-[#213138]">
-        <input type="checkbox" id="accept-check" class="mt-1 h-4 w-4 rounded border-[#213138]/25 text-[#213138] focus:ring-[#213138]/20" required />
-        <span>He leído y acepto los términos y la responsabilidad descrita.</span>
+        <input type="checkbox" id="accept-check" class="mt-1 h-4 w-4 shrink-0 rounded border-[#213138]/25 text-[#213138] focus:ring-[#213138]/20" required />
+        <span class="leading-snug">
+          He leído y acepto los términos de uso de Nauka Accesos, las reglas descritas y la responsabilidad sobre mi actividad
+          en el acceso.
+        </span>
       </label>
 
       <div id="terms-error" class="hidden rounded-xl border border-[#9a6b5c]/30 bg-[rgba(154,107,92,0.1)] px-4 py-3 text-sm font-medium text-[#6b4f45]" role="alert"></div>

@@ -12,19 +12,39 @@ interface Props {
 const { steps } = Astro.props;
 ---
 
-<ol class="mb-6 flex flex-wrap gap-2 border-b border-[#213138]/10 pb-4" aria-label="Progreso de alta">
+<ol
+  class:list={[
+    "mb-6 border-b border-[#213138]/10 pb-4",
+    "flex flex-col gap-3",
+    "sm:mb-8 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-between sm:gap-2 sm:gap-y-4"
+  ]}
+  aria-label="Progreso de alta"
+>
   {
     steps.map((s, i) => (
-      <li class="flex min-w-0 flex-1 basis-[45%] items-center gap-2 sm:basis-0 sm:flex-initial">
+      <li
+        class:list={[
+          "flex min-w-0 items-center gap-3 rounded-xl border border-transparent px-1 py-1.5 sm:min-h-[4.5rem] sm:flex-1 sm:max-w-[min(100%,14rem)] sm:flex-col sm:items-center sm:justify-start sm:gap-2 sm:px-2 sm:py-3 sm:text-center",
+          s.current && "border-[#213138]/12 bg-[#213138]/[0.03] sm:border sm:rounded-2xl"
+        ]}
+      >
         <span
           class:list={[
-            "grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold",
+            "grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold leading-none sm:h-10 sm:w-10 sm:text-sm",
             s.done ? "bg-[#3d5c4a] text-white" : s.current ? "bg-[#213138] text-[#FCFBF9]" : "bg-[#213138]/10 text-[#5c6569]"
           ]}
+          aria-current={s.current ? "step" : undefined}
         >
           {s.done ? "✓" : i + 1}
         </span>
-        <span class:list={["text-xs font-semibold leading-tight sm:text-sm", s.current ? "text-[#213138]" : "text-[#5c6569]"]}>{s.label}</span>
+        <span
+          class:list={[
+            "min-w-0 flex-1 text-left text-[0.7rem] font-semibold leading-snug sm:flex-none sm:text-center sm:text-xs md:text-sm",
+            s.current ? "text-[#213138]" : "text-[#5c6569]"
+          ]}
+        >
+          {s.label}
+        </span>
       </li>
     ))
   }
