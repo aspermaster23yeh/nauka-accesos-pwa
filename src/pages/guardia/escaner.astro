@@ -86,7 +86,10 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   </section>
 </AppLayout>
 
-<script is:inline>
+<script>
+  import { BrowserMultiFormatReader } from "@zxing/browser";
+  import type { IScannerControls } from "@zxing/browser";
+
   const scannerRoot = document.querySelector("[data-complejo-id]");
   const accessButtons = Array.from(document.querySelectorAll(".access-toggle"));
   const actionLabel = document.getElementById("action-label");
@@ -111,12 +114,14 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   let qrState = "invalido";
   let currentToken = "";
   let scanIntervalId = 0;
+  let zxingControls: IScannerControls | null = null;
+  let zxingScanConsumed = false;
   let hasValidated = false;
   const invitationEl = document.getElementById("nauka-invitation");
   const chipLabel = document.getElementById("status-chip-label");
 
-  const normalizeType = (value) => (value === "salida" ? "salida" : "entrada");
-  const extractToken = (rawValue) => {
+  const normalizeType = (value: string | null) => (value === "salida" ? "salida" : "entrada");
+  const extractToken = (rawValue: string) => {
     if (!rawValue) return "";
     const trimmed = String(rawValue).trim();
     if (!trimmed) return "";
@@ -157,7 +162,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     cameraStatus.className = `mt-2 text-center text-xs font-medium ${isError ? "text-[#9a6b5c]" : "text-[#5c6569]"}`;
   };
 
-  const validateTokenOnServer = async (token) => {
+  const validateTokenOnServer = async (token: string) => {
     const response = await fetch("/api/validar-qr", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -167,7 +172,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     return response.json();
   };
 
-  const processToken = async (token) => {
+  const processToken = async (token: string) => {
     const normalizedToken = extractToken(token);
     if (!normalizedToken) return;
     currentToken = normalizedToken;
@@ -195,25 +200,66 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     render();
   };
 
+  const stopAllScanning = () => {
+    if (scanIntervalId) {
+      window.clearInterval(scanIntervalId);
+      scanIntervalId = 0;
+    }
+    if (zxingControls) {
+      zxingControls.stop();
+      zxingControls = null;
+    }
+    zxingScanConsumed = false;
+  };
+
   const startRealtimeScanner = () => {
     if (!(cameraVideo instanceof HTMLVideoElement)) return;
-    if (!("BarcodeDetector" in window)) {
-      setCameraStatus("Scanner automático no disponible, usa validación manual.");
+    stopAllScanning();
+
+    if ("BarcodeDetector" in window) {
+      const BarcodeDetectorCtor = (window as unknown as { BarcodeDetector: new (opts: { formats: string[] }) => { detect: (v: HTMLVideoElement) => Promise<{ rawValue?: string }[]> } }).BarcodeDetector;
+      const detector = new BarcodeDetectorCtor({ formats: ["qr_code"] });
+      scanIntervalId = window.setInterval(async () => {
+        try {
+          const codes = await detector.detect(cameraVideo);
+          if (codes.length > 0 && codes[0].rawValue) {
+            window.clearInterval(scanIntervalId);
+            scanIntervalId = 0;
+            await processToken(codes[0].rawValue);
+          }
+        } catch {
+          // seguir sondeando
+        }
+      }, 700);
+      setCameraStatus("Cámara activa (escaneo automático).");
       return;
     }
-    const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-    if (scanIntervalId) window.clearInterval(scanIntervalId);
-    scanIntervalId = window.setInterval(async () => {
-      try {
-        const codes = await detector.detect(cameraVideo);
-        if (codes.length > 0 && codes[0].rawValue) {
-          window.clearInterval(scanIntervalId);
-          await processToken(codes[0].rawValue);
-        }
-      } catch {
-        // keep polling
-      }
-    }, 700);
+
+    const stream = cameraVideo.srcObject;
+    if (!(stream instanceof MediaStream)) {
+      setCameraStatus("No hay transmisión de cámara para leer el QR.", true);
+      return;
+    }
+
+    const reader = new BrowserMultiFormatReader();
+    reader
+      .decodeFromStream(stream, cameraVideo, async (result, err) => {
+        if (zxingScanConsumed) return;
+        if (err) return;
+        const text = result?.getText();
+        if (!text) return;
+        zxingScanConsumed = true;
+        zxingControls?.stop();
+        zxingControls = null;
+        await processToken(text);
+      })
+      .then((controls) => {
+        zxingControls = controls;
+        setCameraStatus("Cámara activa — apunta el QR al recuadro (Safari y Firefox).");
+      })
+      .catch(() => {
+        setCameraStatus("No se pudo iniciar el lector QR. Usa validación manual con el token.", true);
+      });
   };
 
   const requestCamera = async () => {
