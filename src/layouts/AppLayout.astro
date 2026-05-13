@@ -42,22 +42,18 @@ const profile = Astro.locals.profile;
 const user = Astro.locals.user;
 const isAuthenticated = Boolean(profile && user);
 const roleLabel =
-  profile?.role === "admin"
+  profile?.role === "admin" || profile?.role === "super_admin"
     ? "Administrador"
-    : profile?.role === "super_admin"
-      ? "Super administrador"
-      : profile?.role === "guardia"
-        ? "Guardia"
-        : "Solicitante";
+    : profile?.role === "guardia"
+      ? "Guardia"
+      : "Solicitante";
 const userName = profile?.full_name ?? user?.email ?? "Usuario";
 const roleHome =
-  profile?.role === "admin"
+  profile?.role === "admin" || profile?.role === "super_admin"
     ? "/admin/dashboard"
-    : profile?.role === "super_admin"
-      ? "/super-admin/dashboard"
-      : profile?.role === "guardia"
-        ? "/guardia/escaner"
-        : "/solicitante/inicio";
+    : profile?.role === "guardia"
+      ? "/guardia/escaner"
+      : "/solicitante/inicio";
 const resolvedTopBar =
   topBar && isAuthenticated
     ? {
@@ -69,15 +65,10 @@ const resolvedTopBar =
     : topBar;
 const roleLinks =
   profile?.role === "admin" || profile?.role === "super_admin"
-    ? profile?.role === "super_admin"
-      ? [
-          { href: "/super-admin/dashboard", label: "Usuarios" },
-          { href: "/super-admin/bitacora", label: "Bitácora global" }
-        ]
-      : [
-          { href: "/admin/dashboard", label: "Dashboard" },
-          { href: "/admin/bitacora", label: "Bitacora" }
-        ]
+    ? [
+        { href: "/admin/dashboard", label: "Dashboard" },
+        { href: "/admin/bitacora", label: "Bitácora" }
+      ]
     : profile?.role === "guardia"
       ? [
           { href: "/guardia/escaner", label: "Escaner QR" },

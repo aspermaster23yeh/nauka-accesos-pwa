@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { isPlatformAdmin } from "../../../lib/admin-access";
 import { getSupabaseServiceClient, type AppRole } from "../../../lib/supabase";
 
 export const prerender = false;
@@ -6,8 +7,7 @@ export const prerender = false;
 const TERMS_VERSION = "1";
 
 function homeForRole(role: AppRole): string {
-  if (role === "super_admin") return "/super-admin/dashboard";
-  if (role === "admin") return "/admin/dashboard";
+  if (role === "super_admin" || role === "admin") return "/admin/dashboard";
   if (role === "guardia") return "/guardia/escaner";
   return "/solicitante/inicio";
 }
@@ -16,8 +16,8 @@ export const POST: APIRoute = async ({ locals }) => {
   if (!locals.user || !locals.profile || !locals.accessToken) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
-  if (locals.profile.role === "super_admin") {
-    return new Response(JSON.stringify({ ok: true, redirect: homeForRole("super_admin") }), { status: 200 });
+  if (isPlatformAdmin(locals.profile.role)) {
+    return new Response(JSON.stringify({ ok: true, redirect: "/admin/dashboard" }), { status: 200 });
   }
 
   const supabase = getSupabaseServiceClient();

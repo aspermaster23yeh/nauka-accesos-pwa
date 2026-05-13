@@ -306,19 +306,20 @@ export async function getAdminMetrics(ctx: AuthContext) {
   const supabase = getSupabaseServiceClient();
   /** Ventana móvil 24 h (UTC) para que en servidor/Vercel coincida con actividad reciente sin depender del hilo local. */
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const isSuper = ctx.role === "super_admin";
+  /** Admin y super_admin comparten vista global de métricas. */
+  const globalAdmin = ctx.role === "super_admin" || ctx.role === "admin";
 
   const bitacoraBase = () => supabase.from("bitacora_accesos").select("id", { count: "planned", head: true }).gte("created_at", since);
 
-  const movQ = isSuper ? bitacoraBase() : bitacoraBase().eq("complejo_id", ctx.complejoId);
-  const authQ = isSuper
+  const movQ = globalAdmin ? bitacoraBase() : bitacoraBase().eq("complejo_id", ctx.complejoId);
+  const authQ = globalAdmin
     ? bitacoraBase().eq("resultado", "autorizado")
     : bitacoraBase().eq("complejo_id", ctx.complejoId).eq("resultado", "autorizado");
-  const rejQ = isSuper
+  const rejQ = globalAdmin
     ? bitacoraBase().eq("resultado", "rechazado")
     : bitacoraBase().eq("complejo_id", ctx.complejoId).eq("resultado", "rechazado");
   const incBase = supabase.from("incidentes").select("id", { count: "planned", head: true }).neq("estado", "cerrado");
-  const incQ = isSuper ? incBase : incBase.eq("complejo_id", ctx.complejoId);
+  const incQ = globalAdmin ? incBase : incBase.eq("complejo_id", ctx.complejoId);
 
   const [{ count: totalMovimientos }, { count: totalAutorizados }, { count: totalRechazados }, { count: incidentesAbiertos }] =
     await Promise.all([movQ, authQ, rejQ, incQ]);

@@ -1,15 +1,15 @@
 import { defineMiddleware } from "astro:middleware";
 import { getProfileForUser, getUserFromAccessToken, type AppRole, type UserProfile } from "./lib/supabase";
+import { isPlatformAdmin } from "./lib/admin-access";
 
 const protectedByRole: Record<AppRole, string[]> = {
-  super_admin: ["/super-admin", "/api/super-admin"],
-  admin: ["/admin", "/api/admin"],
+  super_admin: [],
+  admin: ["/admin", "/api/admin", "/api/super-admin"],
   guardia: ["/guardia", "/api/guardia"],
   solicitante: ["/solicitante", "/api/solicitante"]
 };
 
 function getRequiredRole(pathname: string): AppRole | null {
-  if (protectedByRole.super_admin.some((prefix) => pathname.startsWith(prefix))) return "super_admin";
   if (protectedByRole.admin.some((prefix) => pathname.startsWith(prefix))) return "admin";
   if (protectedByRole.guardia.some((prefix) => pathname.startsWith(prefix))) return "guardia";
   if (protectedByRole.solicitante.some((prefix) => pathname.startsWith(prefix))) return "solicitante";
@@ -31,15 +31,14 @@ function isOnboardingPath(pathname: string): boolean {
 }
 
 function roleHome(role: AppRole): string {
-  if (role === "super_admin") return "/super-admin/dashboard";
-  if (role === "admin") return "/admin/dashboard";
+  if (role === "super_admin" || role === "admin") return "/admin/dashboard";
   if (role === "guardia") return "/guardia/escaner";
   return "/solicitante/inicio";
 }
 
 function needsTermsAcceptance(profile: UserProfile): boolean {
-  if (profile.role === "super_admin") return false;
-  return !profile.terms_accepted_at && ["solicitante", "guardia", "admin"].includes(profile.role);
+  if (isPlatformAdmin(profile.role)) return false;
+  return !profile.terms_accepted_at && ["solicitante", "guardia"].includes(profile.role);
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
@@ -54,6 +53,13 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const pathname = context.url.pathname;
+
+  if (pathname.startsWith("/super-admin")) {
+    let rest = pathname.slice("/super-admin".length);
+    if (!rest || rest === "/") rest = "/dashboard";
+    return context.redirect(`/admin${rest}${context.url.search}`, 308);
+  }
+
   const accessToken = context.cookies.get("sb-access-token")?.value;
   const publicPath = isPublicPath(pathname);
   const apiPath = pathname.startsWith("/api") ? pathname.replace(/^\/api/, "") || "/" : pathname;
@@ -88,11 +94,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
-      if (
-        requiredRole &&
-        (!profile ||
-          (profile.role !== requiredRole && !(requiredRole === "admin" && profile.role === "super_admin")))
-      ) {
+      if (requiredRole === "admin" && !isPlatformAdmin(profile?.role)) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+      }
+      if (requiredRole && requiredRole !== "admin" && (!profile || profile.role !== requiredRole)) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
       }
       return next();
@@ -107,10 +112,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return context.redirect("/");
       }
       if (user && profile) {
-        if (profile.role !== "super_admin" && profile.onboarding_status === "suspendido" && !pathname.startsWith("/onboarding/cuenta-suspendida")) {
+        if (!isPlatformAdmin(profile.role) && profile.onboarding_status === "suspendido" && !pathname.startsWith("/onboarding/cuenta-suspendida")) {
           return context.redirect("/onboarding/cuenta-suspendida");
         }
-        if (profile.role !== "super_admin" && profile.onboarding_status === "pendiente_ine" && !pathname.startsWith("/onboarding/pendiente-ine")) {
+        if (!isPlatformAdmin(profile.role) && profile.onboarding_status === "pendiente_ine" && !pathname.startsWith("/onboarding/pendiente-ine")) {
           return context.redirect("/onboarding/pendiente-ine");
         }
         if (needsTermsAcceptance(profile) && !isOnboardingPath(pathname)) {
@@ -124,8 +129,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return context.redirect("/");
     }
 
-    if (profile.role === "super_admin") {
-      /* sin bloqueos de términos */
+    if (isPlatformAdmin(profile.role)) {
+      /* sin bloqueos de términos / INE para operadores de plataforma */
     } else if (profile.onboarding_status === "suspendido") {
       if (!pathname.startsWith("/onboarding/cuenta-suspendida")) {
         return context.redirect("/onboarding/cuenta-suspendida");
@@ -140,10 +145,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return context.redirect("/onboarding/terminos");
     }
 
-    if (profile.role !== requiredRole) {
-      if (requiredRole === "admin" && profile.role === "super_admin") {
-        return next();
-      }
+    if (requiredRole === "admin" && !isPlatformAdmin(profile.role)) {
+      return context.redirect(roleHome(profile.role));
+    }
+    if (requiredRole !== "admin" && profile.role !== requiredRole) {
       return context.redirect(roleHome(profile.role));
     }
     return next();

@@ -13,11 +13,6 @@ export const guardNav: BottomNavItem[] = [
 
 export const adminNav: BottomNavItem[] = [
   { id: "dashboard", label: "Dashboard", icon: "monitoring", href: "/admin/dashboard" },
-  { id: "bitacora", label: "Bitacora", icon: "history", href: "/admin/bitacora" },
+  { id: "bitacora", label: "Bitácora", icon: "history", href: "/admin/bitacora" },
   { id: "incidentes", label: "Incidentes", icon: "warning", href: "/admin/dashboard#incidentes" }
-];
-
-export const superAdminNav: BottomNavItem[] = [
-  { id: "usuarios", label: "Usuarios", icon: "group", href: "/super-admin/dashboard" },
-  { id: "bitacora", label: "Bitácora", icon: "history", href: "/super-admin/bitacora" }
 ];

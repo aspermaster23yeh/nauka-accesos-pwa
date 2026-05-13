@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { isPlatformAdmin } from "../../../lib/admin-access";
 import { getAdminMetrics, getBitacoraByComplejo } from "../../../lib/access";
 
 export const prerender = false;
@@ -7,7 +8,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   if (!locals.user || !locals.profile || !locals.accessToken) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
-  if (locals.profile.role !== "admin" && locals.profile.role !== "super_admin") {
+  if (!isPlatformAdmin(locals.profile.role)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
   try {

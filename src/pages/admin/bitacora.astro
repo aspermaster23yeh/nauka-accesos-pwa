@@ -1,24 +1,20 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
 import { adminNav } from "../../lib/nav";
-import { getBitacoraByComplejo, getBitacoraScope } from "../../lib/access";
+import { getBitacoraScope } from "../../lib/access";
 const q = Astro.url.searchParams.get("q") ?? "";
-const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
-const isSuper = Astro.locals.profile?.role === "super_admin";
-const registros = isSuper
-  ? await getBitacoraScope({ allComplejos: true, query: q })
-  : await getBitacoraByComplejo(complejoId, q, Astro.locals.accessToken ?? undefined);
+const registros = await getBitacoraScope({ allComplejos: true, query: q });
 ---
 
 <AppLayout
   wide
-  title="Bitacora - Nauka Nayarit"
+  title="Bitácora - Nauka Nayarit"
   topBar={{ title: "Nauka Nayarit", leftIcon: "person", leftHref: "#", rightIcon: "notifications", rightHref: "#" }}
   navItems={adminNav}
   pageTitle="Registro digital"
 >
   <p class="-mt-5 mb-6 text-sm font-bold uppercase tracking-[0.08em] text-[#7a7e82] md:-mt-2">
-    Bitácora de accesos{isSuper ? " · todos los complejos" : ""}
+    Bitácora de accesos · todos los complejos
   </p>
 
   <form class="space-y-3" method="get">
@@ -40,7 +36,7 @@ const registros = isSuper
   <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
     {registros.length === 0 && (
       <p class="col-span-full rounded-xl border border-dashed border-[#cfd4d9] bg-white/80 p-6 text-sm text-[#5f6368]">
-        Sin registros. Si el guardia ya operó en caseta, revisa que su perfil use el mismo <strong>complejo</strong> que los pases (por ejemplo <code class="rounded bg-[#f0f0f0] px-1">complejo-1</code>).
+        Sin registros. Si el guardia ya operó en caseta, revisa que su perfil use el mismo <strong>complejo</strong> que los pases.
       </p>
     )}
     {registros.map((row) => (
@@ -53,7 +49,7 @@ const registros = isSuper
             {new Date(row.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })} {row.visitante_nombre ?? "Sin nombre"}
           </p>
           <p class={`text-sm ${row.resultado === "rechazado" ? "text-[#93000a]" : "text-[#5f6368]"}`}>
-            {(row.tipo_evento ?? "movimiento").toUpperCase()} · {row.lote_number ?? "Sin lote"} {row.razon ? `· ${row.razon}` : ""}
+            {(row.tipo_evento ?? "movimiento").toUpperCase()} · {row.complejo_id} · {row.lote_number ?? "Sin lote"} {row.razon ? `· ${row.razon}` : ""}
           </p>
           <p class="text-xs text-[#5f6368]">
             Solicitante: {row.solicitante_nombre ?? "No identificado"} · Motivo: {row.motivo ?? "N/A"}

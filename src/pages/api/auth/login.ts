@@ -11,8 +11,7 @@ function sanitizeEmail(raw: FormDataEntryValue | null): string {
 }
 
 function loginTarget(role: AppRole): string {
-  if (role === "super_admin") return "/super-admin/dashboard";
-  if (role === "admin") return "/admin/dashboard";
+  if (role === "super_admin" || role === "admin") return "/admin/dashboard";
   if (role === "guardia") return "/guardia/escaner";
   return "/solicitante/inicio";
 }

@@ -1,10 +1,11 @@
 import type { APIRoute } from "astro";
+import { isPlatformAdmin } from "../../../lib/admin-access";
 import { getSupabaseServiceClient } from "../../../lib/supabase";
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  if (!locals.user || locals.profile?.role !== "super_admin") {
+  if (!locals.user || !isPlatformAdmin(locals.profile?.role)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
