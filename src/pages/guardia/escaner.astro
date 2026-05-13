@@ -67,6 +67,67 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       <p class="mt-5 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#5c6569]">Destino</p>
       <p id="lot-number" class="font-display mt-1 text-3xl text-[#213138] md:text-4xl">—</p>
       <p id="validation-reason" class="mt-4 text-sm leading-relaxed text-[#5c6569]">Escanea un código o pega el enlace del pase.</p>
+
+      <div id="pass-detail-panel" class="mt-6 hidden w-full space-y-4 border-t border-[#213138]/10 pt-6 text-left">
+        <div class="rounded-2xl border border-[#213138]/[0.08] bg-[#FCFBF9]/95 p-4 shadow-[0_4px_20px_rgba(33,49,56,0.04)]">
+          <p class="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[#5c6569]">Autorizado por</p>
+          <div class="mt-3 flex gap-3">
+            <img
+              id="pass-solicitante-photo"
+              alt=""
+              class="hidden h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-[#213138]/10"
+            />
+            <div
+              id="pass-solicitante-photo-ph"
+              class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#213138]/[0.06] text-[#5c6569]"
+            >
+              <span class="material-symbols-outlined text-2xl">person</span>
+            </div>
+            <div class="min-w-0">
+              <p id="pass-solicitante-name" class="truncate font-semibold text-[#213138]"></p>
+              <p id="pass-solicitante-lote" class="text-sm text-[#5c6569]"></p>
+            </div>
+          </div>
+          <img id="pass-solicitante-ine" alt="INE solicitante" class="mt-3 hidden max-h-36 w-full rounded-xl border border-[#213138]/10 object-contain" />
+        </div>
+
+        <div class="rounded-2xl border border-[#213138]/[0.08] bg-white/95 p-4 shadow-[0_4px_20px_rgba(33,49,56,0.04)]">
+          <p class="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[#5c6569]">Permiso solicitado</p>
+          <p id="pass-motivo" class="mt-1 text-base font-semibold text-[#213138]">—</p>
+          <p class="mt-4 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[#5c6569]">Instrucciones para caseta</p>
+          <p id="pass-notas" class="mt-1 text-sm leading-relaxed text-[#213138]">—</p>
+          <p class="mt-4 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[#5c6569]">Vigencia del pase</p>
+          <p id="pass-vence" class="mt-1 text-sm font-semibold text-[#3d5c4a]">—</p>
+        </div>
+
+        <div>
+          <p class="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-[#5c6569]">Identidad del visitante (revisar antes de confirmar)</p>
+          <div class="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              id="pass-visitor-face-wrap"
+              class="overflow-hidden rounded-xl border border-[#213138]/10 bg-[#213138]/[0.03] text-left transition active:scale-[0.99]"
+            >
+              <p class="bg-[#213138]/[0.04] px-2 py-1 text-[0.55rem] font-bold uppercase tracking-wider text-[#5c6569]">Rostro</p>
+              <img id="pass-visitor-face" alt="Rostro visitante" class="hidden aspect-square w-full object-cover" />
+              <p id="pass-visitor-face-ph" class="px-2 py-6 text-center text-[0.7rem] text-[#5c6569]">Sin foto</p>
+            </button>
+            <button
+              type="button"
+              id="pass-visitor-ine-wrap"
+              class="overflow-hidden rounded-xl border border-[#213138]/10 bg-[#213138]/[0.03] text-left transition active:scale-[0.99]"
+            >
+              <p class="bg-[#213138]/[0.04] px-2 py-1 text-[0.55rem] font-bold uppercase tracking-wider text-[#5c6569]">INE</p>
+              <img id="pass-visitor-ine" alt="INE visitante" class="hidden max-h-36 w-full object-contain" />
+              <p id="pass-visitor-ine-ph" class="px-2 py-6 text-center text-[0.7rem] text-[#5c6569]">Sin imagen</p>
+            </button>
+          </div>
+          <p class="mt-3 text-center text-xs leading-relaxed text-[#5c6569]">
+            Toca una foto para verla en grande. Luego confirma <strong id="pass-confirm-mode-label">la entrada o la salida</strong> con el botón inferior.
+          </p>
+        </div>
+      </div>
+
       <a
         id="access-action"
         href="#"
@@ -120,6 +181,112 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   const invitationEl = document.getElementById("nauka-invitation");
   const chipLabel = document.getElementById("status-chip-label");
 
+  type PassDetail = {
+    solicitanteNombre?: string;
+    solicitanteLote?: string | null;
+    solicitanteFotoUrl?: string | null;
+    solicitanteIneUrl?: string | null;
+    motivo?: string | null;
+    notas?: string | null;
+    vencimiento?: string;
+    visitanteFotoUrl?: string | null;
+    visitanteIneUrl?: string | null;
+  };
+  let passDetail: PassDetail | null = null;
+
+  function setOptionalImage(
+    img: HTMLImageElement | null,
+    placeholder: HTMLElement | null,
+    url: string | null | undefined,
+    openImageOnClick = true
+  ) {
+    if (!img || !placeholder) return;
+    if (url) {
+      img.src = url;
+      img.classList.remove("hidden");
+      placeholder.classList.add("hidden");
+      img.onclick = openImageOnClick ? () => window.open(url, "_blank", "noopener,noreferrer") : null;
+    } else {
+      img.removeAttribute("src");
+      img.classList.add("hidden");
+      placeholder.classList.remove("hidden");
+      img.onclick = null;
+    }
+  }
+
+  function updatePassDetailPanel() {
+    const panel = document.getElementById("pass-detail-panel");
+    if (!panel) return;
+    if (!hasValidated || qrState !== "valido" || !passDetail) {
+      panel.classList.add("hidden");
+      return;
+    }
+    panel.classList.remove("hidden");
+
+    const nameEl = document.getElementById("pass-solicitante-name");
+    const loteEl = document.getElementById("pass-solicitante-lote");
+    if (nameEl) nameEl.textContent = passDetail.solicitanteNombre ?? "Solicitante";
+    if (loteEl) loteEl.textContent = `Solicitante · Lote ${passDetail.solicitanteLote ?? "—"}`;
+
+    const sImg = document.getElementById("pass-solicitante-photo");
+    const sPh = document.getElementById("pass-solicitante-photo-ph");
+    if (sImg instanceof HTMLImageElement && sPh) {
+      setOptionalImage(sImg, sPh, passDetail.solicitanteFotoUrl);
+    }
+
+    const sIne = document.getElementById("pass-solicitante-ine");
+    const solicitanteIneUrl = passDetail.solicitanteIneUrl;
+    if (sIne instanceof HTMLImageElement) {
+      if (solicitanteIneUrl) {
+        sIne.src = solicitanteIneUrl;
+        sIne.classList.remove("hidden");
+        sIne.onclick = () => window.open(solicitanteIneUrl, "_blank", "noopener,noreferrer");
+      } else {
+        sIne.classList.add("hidden");
+        sIne.removeAttribute("src");
+        sIne.onclick = null;
+      }
+    }
+
+    const motivoEl = document.getElementById("pass-motivo");
+    const notasEl = document.getElementById("pass-notas");
+    const venceEl = document.getElementById("pass-vence");
+    if (motivoEl) motivoEl.textContent = passDetail.motivo?.trim() || "—";
+    if (notasEl) notasEl.textContent = passDetail.notas?.trim() || "Sin notas para caseta.";
+    if (venceEl) {
+      venceEl.textContent = passDetail.vencimiento
+        ? new Date(passDetail.vencimiento).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })
+        : "—";
+    }
+
+    const vFace = document.getElementById("pass-visitor-face");
+    const vFacePh = document.getElementById("pass-visitor-face-ph");
+    const vIne = document.getElementById("pass-visitor-ine");
+    const vInePh = document.getElementById("pass-visitor-ine-ph");
+    if (vFace instanceof HTMLImageElement && vFacePh) {
+      setOptionalImage(vFace, vFacePh, passDetail.visitanteFotoUrl, false);
+    }
+    if (vIne instanceof HTMLImageElement && vInePh) {
+      setOptionalImage(vIne, vInePh, passDetail.visitanteIneUrl, false);
+    }
+
+    const wrapFace = document.getElementById("pass-visitor-face-wrap");
+    const wrapIne = document.getElementById("pass-visitor-ine-wrap");
+    if (wrapFace instanceof HTMLButtonElement) {
+      const u = passDetail.visitanteFotoUrl;
+      wrapFace.disabled = !u;
+      wrapFace.onclick = u ? () => window.open(u, "_blank", "noopener,noreferrer") : null;
+    }
+    if (wrapIne instanceof HTMLButtonElement) {
+      const u = passDetail.visitanteIneUrl;
+      wrapIne.disabled = !u;
+      wrapIne.onclick = u ? () => window.open(u, "_blank", "noopener,noreferrer") : null;
+    }
+
+    const modeLab = document.getElementById("pass-confirm-mode-label");
+    if (modeLab) modeLab.textContent = accessType === "salida" ? "la salida" : "la entrada";
+  }
+
   const normalizeType = (value: string | null) => (value === "salida" ? "salida" : "entrada");
   const extractToken = (rawValue: string) => {
     if (!rawValue) return "";
@@ -156,7 +323,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     window.history.replaceState(null, "", next);
   };
 
-  const setCameraStatus = (message, isError = false) => {
+  const setCameraStatus = (message: string, isError = false) => {
     if (!cameraStatus) return;
     cameraStatus.textContent = message;
     cameraStatus.className = `mt-2 text-center text-xs font-medium ${isError ? "text-[#9a6b5c]" : "text-[#5c6569]"}`;
@@ -176,10 +343,29 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     const normalizedToken = extractToken(token);
     if (!normalizedToken) return;
     currentToken = normalizedToken;
+    passDetail = null;
     try {
-      const result = await validateTokenOnServer(normalizedToken);
+      const result = (await validateTokenOnServer(normalizedToken)) as PassDetail & {
+        status: string;
+        visitanteNombre?: string;
+        lote?: string;
+        razon?: string;
+      };
       hasValidated = true;
       qrState = result.status === "authorized" ? "valido" : "invalido";
+      if (result.status === "authorized") {
+        passDetail = {
+          solicitanteNombre: result.solicitanteNombre,
+          solicitanteLote: result.solicitanteLote ?? null,
+          solicitanteFotoUrl: result.solicitanteFotoUrl ?? null,
+          solicitanteIneUrl: result.solicitanteIneUrl ?? null,
+          motivo: result.motivo ?? null,
+          notas: result.notas ?? null,
+          vencimiento: result.vencimiento,
+          visitanteFotoUrl: result.visitanteFotoUrl ?? null,
+          visitanteIneUrl: result.visitanteIneUrl ?? null
+        };
+      }
       if (visitorNameNode && result.visitanteNombre) visitorNameNode.textContent = result.visitanteNombre;
       if (lotNode && result.lote) lotNode.textContent = `Lote ${result.lote}`;
       if (result.status !== "authorized") {
@@ -188,12 +374,15 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       }
       if (reasonNode) {
         reasonNode.textContent =
-          result.status === "authorized" ? "Invitación verificada. Puede registrar el movimiento en caseta." : `Motivo: ${result.razon ?? "Token no encontrado o inválido"}`;
+          result.status === "authorized"
+            ? "Invitación verificada. Revisa fotos y permiso, elige entrada o salida y confirma en caseta."
+            : `Motivo: ${result.razon ?? "Token no encontrado o inválido"}`;
       }
       setCameraStatus(result.status === "authorized" ? "Código válido." : "Código no válido.", result.status !== "authorized");
     } catch {
       hasValidated = true;
       qrState = "invalido";
+      passDetail = null;
       if (reasonNode) reasonNode.textContent = "Error de validación. Intenta de nuevo.";
       setCameraStatus("No se pudo validar.", true);
     }
@@ -374,7 +563,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     }
 
     if (qrState === "valido" && hasValidated) {
-      actionLabel.textContent = accessType === "entrada" ? "Registrar entrada" : "Registrar salida";
+      actionLabel.textContent = accessType === "entrada" ? "Confirmar entrada en caseta" : "Confirmar salida en caseta";
       statusTitle.textContent = "Visitante autorizado";
       statusChip.className = "nauka-chip-ok mb-4 inline-flex items-center gap-2 rounded-full px-3 py-2";
       accessAction.className =
@@ -405,6 +594,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       }
     }
     syncUrlFromState();
+    updatePassDetailPanel();
   };
 
   accessButtons.forEach((button) => {

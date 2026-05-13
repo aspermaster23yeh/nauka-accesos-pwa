@@ -18,10 +18,32 @@ export interface AccessValidationResult {
   status: AccessStatus;
   visitanteNombre?: string;
   solicitanteNombre?: string;
+  solicitanteLote?: string | null;
   vencimiento?: string;
   razon?: string;
   paseId?: string;
   lote?: string;
+  /** Texto del pase para revisión en caseta */
+  motivo?: string | null;
+  notas?: string | null;
+  /** URLs firmadas (1 h); solo en flujo autorizado */
+  visitanteFotoUrl?: string | null;
+  visitanteIneUrl?: string | null;
+  solicitanteFotoUrl?: string | null;
+  solicitanteIneUrl?: string | null;
+}
+
+async function signedUrlOrNull(
+  supabase: ReturnType<typeof getSupabaseServiceClient>,
+  bucket: string,
+  path: string | null | undefined,
+  ttlSec = 3600
+): Promise<string | null> {
+  const p = path?.trim();
+  if (!p) return null;
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(p, ttlSec);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
 }
 
 export async function validateAccessQr(token: string, complejoId: string, guardiaId?: string): Promise<AccessValidationResult> {
@@ -30,7 +52,9 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
 
   const { data, error } = await supabase
     .from("pases_acceso")
-    .select("id, visitante_nombre, estado, vence_en, lote_number, creado_por")
+    .select(
+      "id, visitante_nombre, estado, vence_en, lote_number, creado_por, motivo, notas, visitante_foto_storage_path, visitante_ine_storage_path"
+    )
     .ilike("token_qr", normalizedToken)
     .eq("complejo_id", complejoId)
     .maybeSingle();
@@ -95,15 +119,40 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
     resultado: "autorizado"
   });
 
-  const { data: solicitanteProfile } = await supabase.from("profiles").select("full_name").eq("id", data.creado_por).maybeSingle();
+  const { data: solicitanteProfile } = await supabase
+    .from("profiles")
+    .select("full_name, lot_number, photo_storage_path, ine_storage_path")
+    .eq("id", data.creado_por)
+    .maybeSingle();
+
+  const row = data as typeof data & {
+    motivo?: string | null;
+    notas?: string | null;
+    visitante_foto_storage_path?: string | null;
+    visitante_ine_storage_path?: string | null;
+  };
+
+  const [visitanteFotoUrl, visitanteIneUrl, solicitanteFotoUrl, solicitanteIneUrl] = await Promise.all([
+    signedUrlOrNull(supabase, "pases_visitante", row.visitante_foto_storage_path),
+    signedUrlOrNull(supabase, "pases_visitante", row.visitante_ine_storage_path),
+    signedUrlOrNull(supabase, "fotos_perfil", solicitanteProfile?.photo_storage_path),
+    signedUrlOrNull(supabase, "identificaciones", solicitanteProfile?.ine_storage_path)
+  ]);
 
   return {
     status: "authorized",
     visitanteNombre: data.visitante_nombre,
     solicitanteNombre: solicitanteProfile?.full_name ?? undefined,
+    solicitanteLote: solicitanteProfile?.lot_number ?? null,
     vencimiento: data.vence_en,
     paseId: data.id,
-    lote: data.lote_number
+    lote: data.lote_number,
+    motivo: row.motivo ?? null,
+    notas: row.notas ?? null,
+    visitanteFotoUrl,
+    visitanteIneUrl,
+    solicitanteFotoUrl,
+    solicitanteIneUrl
   };
 }
 

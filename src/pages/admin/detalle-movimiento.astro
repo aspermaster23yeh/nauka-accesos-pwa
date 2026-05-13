@@ -2,32 +2,64 @@
 import AppLayout from "../../layouts/AppLayout.astro";
 import { adminNav } from "../../lib/nav";
 import { getSupabaseServiceClient } from "../../lib/supabase";
+
 const id = Astro.url.searchParams.get("id");
 const supabase = getSupabaseServiceClient();
+
 const { data: row } = id
   ? await supabase
       .from("bitacora_accesos")
       .select(
-        "id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, origen, token_qr, pase_id, guardia_id, evidencia_storage_path"
+        "id, created_at, visitante_nombre, resultado, tipo_evento, razon, lote_number, origen, token_qr, pase_id, guardia_id, evidencia_storage_path, complejo_id"
       )
       .eq("id", id)
       .maybeSingle()
   : { data: null };
 
+async function signBucket(bucket: string, path: string | null | undefined) {
+  const p = path?.trim();
+  if (!p) return null;
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(p, 3600);
+  return data?.signedUrl ?? null;
+}
+
 let evidenciaUrl: string | null = null;
 if (row?.evidencia_storage_path) {
-  const { data: signed } = await supabase.storage.from("evidencias_salida").createSignedUrl(row.evidencia_storage_path, 3600);
-  evidenciaUrl = signed?.signedUrl ?? null;
+  evidenciaUrl = await signBucket("evidencias_salida", row.evidencia_storage_path);
 }
+
 const { data: pass } = row?.pase_id
-  ? await supabase.from("pases_acceso").select("id, creado_por, motivo, notas, created_at").eq("id", row.pase_id).maybeSingle()
+  ? await supabase
+      .from("pases_acceso")
+      .select(
+        "id, creado_por, motivo, notas, created_at, vence_en, visitante_foto_storage_path, visitante_ine_storage_path, visitante_nombre"
+      )
+      .eq("id", row.pase_id)
+      .maybeSingle()
   : { data: null };
+
 const { data: solicitanteProfile } = pass?.creado_por
-  ? await supabase.from("profiles").select("id, full_name, lot_number").eq("id", pass.creado_por).maybeSingle()
+  ? await supabase
+      .from("profiles")
+      .select("id, full_name, lot_number, photo_storage_path, ine_storage_path")
+      .eq("id", pass.creado_por)
+      .maybeSingle()
   : { data: null };
+
 const { data: guardiaProfile } = row?.guardia_id
   ? await supabase.from("profiles").select("id, full_name").eq("id", row.guardia_id).maybeSingle()
   : { data: null };
+
+const [solicitanteFotoUrl, solicitanteIneUrl, visitanteFotoUrl, visitanteIneUrl] = await Promise.all([
+  signBucket("fotos_perfil", solicitanteProfile?.photo_storage_path),
+  signBucket("identificaciones", solicitanteProfile?.ine_storage_path),
+  signBucket("pases_visitante", (pass as { visitante_foto_storage_path?: string | null } | null)?.visitante_foto_storage_path),
+  signBucket("pases_visitante", (pass as { visitante_ine_storage_path?: string | null } | null)?.visitante_ine_storage_path)
+]);
+
+const solicitanteLabel = solicitanteProfile?.full_name ?? "Sistema Nauka";
+const solicitanteLote = solicitanteProfile?.lot_number ?? row?.lote_number ?? "—";
+const visitanteNombrePase = (pass as { visitante_nombre?: string } | null)?.visitante_nombre ?? row?.visitante_nombre ?? "Visitante";
 ---
 
 <AppLayout
@@ -40,75 +72,179 @@ const { data: guardiaProfile } = row?.guardia_id
     <span class="material-symbols-outlined">check_circle</span>
     <span class="text-xs font-bold uppercase tracking-[0.08em]">{row?.resultado === "rechazado" ? "Acceso rechazado" : "Acceso completado"}</span>
   </div>
-  <h1 class="text-6xl font-extrabold tracking-[-0.02em] text-[#213138]">{row?.visitante_nombre ?? "Registro"}</h1>
-  <p class="mt-2 text-3xl text-[#43474a]">{(row?.tipo_evento ?? "movimiento").toUpperCase()} · {row?.lote_number ?? "Sin lote"}</p>
+  <h1 class="text-4xl font-extrabold tracking-[-0.02em] text-[#213138] md:text-6xl">{row?.visitante_nombre ?? "Registro"}</h1>
+  <p class="mt-2 text-xl text-[#43474a] md:text-3xl">
+    {(row?.tipo_evento ?? "movimiento").toUpperCase()} · {row?.lote_number ?? "Sin lote"}
+    {row?.complejo_id && <span class="text-[#5f6368]"> · {row.complejo_id}</span>}
+  </p>
 
-  <section class="mt-6 space-y-4">
-    <article class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.05)]">
-      <h2 class="mb-4 text-3xl font-semibold text-[#213138]">Registro de Tiempo</h2>
-      <div class="grid grid-cols-2 gap-3">
+  <section class="mt-8 space-y-5">
+    <article class="rounded-[20px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.05)] md:p-6">
+      <div class="mb-5 flex items-center gap-2">
+        <span class="material-symbols-outlined text-2xl text-[#213138]">schedule</span>
+        <h2 class="text-xl font-semibold text-[#213138] md:text-2xl">Registro de tiempo</h2>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
         <div>
-          <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Hora de Entrada</p>
-          <p class="mt-1 text-5xl font-bold text-[#213138]">
+          <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Hora del evento</p>
+          <p class="mt-1 text-3xl font-bold text-[#213138] md:text-5xl">
             {row ? new Date(row.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : "--:--"}
           </p>
           <p class="text-sm text-[#5f6368]">{row?.origen ?? "Caseta"}</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Hora de Salida</p>
-          <p class="mt-1 text-5xl font-bold text-[#213138]">--:--</p>
-          <p class="text-sm text-[#5f6368]">Pendiente</p>
+          <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Fecha</p>
+          <p class="mt-1 text-2xl font-semibold text-[#213138] md:text-3xl">
+            {row ? new Date(row.created_at).toLocaleDateString("es-MX", { dateStyle: "medium" }) : "—"}
+          </p>
         </div>
       </div>
       <div class="mt-4 flex items-center justify-between border-t border-[#eeeeee] pt-4">
-        <p class="text-sm text-[#5f6368]">Duracion total de estancia</p>
+        <p class="text-sm text-[#5f6368]">Resultado en bitácora</p>
         <p class="text-sm font-semibold text-[#213138]">{row?.resultado ?? "N/A"}</p>
       </div>
     </article>
 
-    <article class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.05)]">
-      <h2 class="mb-4 text-3xl font-semibold text-[#213138]">Autorizacion</h2>
-      <div class="flex items-center gap-3">
-        <div class="grid h-12 w-12 place-items-center rounded-full bg-[#eeeeee] text-[#5f6368]">
-          <span class="material-symbols-outlined">person</span>
-        </div>
-        <div>
+    <article class="rounded-[20px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.05)] md:p-6">
+      <div class="mb-5 flex items-center gap-2">
+        <span class="material-symbols-outlined text-2xl text-[#3d5c4a]">verified_user</span>
+        <h2 class="text-xl font-semibold text-[#213138] md:text-2xl">Autorización</h2>
+      </div>
+      <div class="flex items-start gap-4">
+        {
+          solicitanteFotoUrl ? (
+            <img
+              src={solicitanteFotoUrl}
+              alt=""
+              class="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-[#213138]/10 md:h-20 md:w-20"
+            />
+          ) : (
+            <div class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[#eeeeee] text-[#5f6368] md:h-20 md:w-20">
+              <span class="material-symbols-outlined text-3xl">person</span>
+            </div>
+          )
+        }
+        <div class="min-w-0 flex-1">
           <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Autorizado por</p>
-          <p class="text-2xl font-semibold text-[#213138]">{solicitanteProfile?.full_name ?? "Sistema Nauka"}</p>
-          <p class="text-sm text-[#5f6368]">Lote {solicitanteProfile?.lot_number ?? row?.lote_number ?? "N/A"}</p>
+          <p class="text-xl font-semibold text-[#213138] md:text-2xl">{solicitanteLabel}</p>
+          <p class="text-sm text-[#5f6368]">Solicitante · Lote {solicitanteLote}</p>
         </div>
       </div>
-      <div class="mt-4 rounded-xl bg-[#f3f3f4] p-3">
-        <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Metodo de verificacion</p>
-        <p class="mt-1 text-base font-semibold text-[#213138]">{row?.token_qr ? `QR ${row.token_qr.slice(0, 8)}...` : "Codigo QR unico"}</p>
+      {
+        solicitanteIneUrl && (
+          <div class="mt-4">
+            <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">INE del solicitante (expediente)</p>
+            <img src={solicitanteIneUrl} alt="INE solicitante" class="mt-2 max-h-56 w-full rounded-xl border border-[#ececec] object-contain md:max-h-72" />
+          </div>
+        )
+      }
+      <div class="mt-4 rounded-xl bg-[#f3f3f4] p-4">
+        <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Método de verificación</p>
+        <p class="mt-2 flex items-center gap-2 text-base font-semibold text-[#213138]">
+          <span class="material-symbols-outlined text-[#213138]">qr_code_2</span>
+          Código QR único
+          {row?.token_qr && <span class="text-sm font-normal text-[#5f6368]">({row.token_qr.slice(0, 8)}…)</span>}
+        </p>
       </div>
-      <div class="mt-4 rounded-xl bg-[#f3f3f4] p-3">
+      <div class="mt-3 rounded-xl bg-[#f3f3f4] p-4">
         <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Guardia que validó</p>
         <p class="mt-1 text-base font-semibold text-[#213138]">{guardiaProfile?.full_name ?? "No identificado"}</p>
       </div>
     </article>
 
-    <article class="rounded-[14px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.05)]">
-      <h2 class="mb-4 text-3xl font-semibold text-[#213138]">Detalles de Identificacion</h2>
-      <div class="space-y-3">
-        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Resultado</span><span class="text-lg font-semibold text-[#213138]">{row?.resultado ?? "N/A"}</span></p>
-        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Razon</span><span class="text-lg font-semibold text-[#213138]">{row?.razon ?? "Sin observaciones"}</span></p>
-        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Motivo del pase</span><span class="text-lg font-semibold text-[#213138]">{pass?.motivo ?? "N/A"}</span></p>
-        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Notas del solicitante</span><span class="text-lg font-semibold text-[#213138]">{pass?.notas ?? "Sin notas"}</span></p>
-        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Pase creado</span><span class="text-lg font-semibold text-[#213138]">{pass?.created_at ? new Date(pass.created_at).toLocaleString("es-MX") : "N/A"}</span></p>
-        <p><span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Registro</span><span class="text-lg font-semibold text-[#213138]">{row?.id ?? "N/A"}</span></p>
-        {evidenciaUrl && (
-          <div class="mt-4">
-            <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Evidencia de salida</p>
-            <img src={evidenciaUrl} alt="Evidencia" class="mt-2 max-h-64 rounded-xl border border-[#ececec] object-contain" />
-          </div>
-        )}
+    <article class="rounded-[20px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.05)] md:p-6">
+      <div class="mb-5 flex items-center gap-2">
+        <span class="material-symbols-outlined text-2xl text-[#213138]">badge</span>
+        <h2 class="text-xl font-semibold text-[#213138] md:text-2xl">Visitante en caseta</h2>
+      </div>
+      <p class="mb-4 text-sm text-[#5f6368]">
+        Rostro e identificación registrados al crear el pase · <span class="font-semibold text-[#213138]">{visitanteNombrePase}</span>
+      </p>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Foto del rostro</p>
+          {
+            visitanteFotoUrl ? (
+              <img
+                src={visitanteFotoUrl}
+                alt="Rostro del visitante"
+                class="mt-2 w-full rounded-2xl border border-[#ececec] object-cover shadow-sm"
+              />
+            ) : (
+              <p class="mt-2 rounded-xl border border-dashed border-[#cfd4d9] bg-[#fafafa] p-6 text-center text-sm text-[#5f6368]">
+                Sin foto en expediente (pase anterior o no cargada).
+              </p>
+            )
+          }
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Identificación (INE)</p>
+          {
+            visitanteIneUrl ? (
+              <img
+                src={visitanteIneUrl}
+                alt="INE del visitante"
+                class="mt-2 w-full rounded-2xl border border-[#ececec] object-contain shadow-sm"
+              />
+            ) : (
+              <p class="mt-2 rounded-xl border border-dashed border-[#cfd4d9] bg-[#fafafa] p-6 text-center text-sm text-[#5f6368]">
+                Sin INE en expediente.
+              </p>
+            )
+          }
+        </div>
+      </div>
+    </article>
+
+    <article class="rounded-[20px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.05)] md:p-6">
+      <h2 class="mb-4 text-xl font-semibold text-[#213138] md:text-2xl">Detalles del pase y bitácora</h2>
+      <div class="space-y-3 text-[#213138]">
+        <p>
+          <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Resultado</span>
+          <span class="text-lg font-semibold">{row?.resultado ?? "N/A"}</span>
+        </p>
+        <p>
+          <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Razón / observaciones</span>
+          <span class="text-lg font-semibold">{row?.razon ?? "Sin observaciones"}</span>
+        </p>
+        <p>
+          <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Motivo del acceso</span>
+          <span class="text-lg font-semibold">{pass?.motivo ?? "N/A"}</span>
+        </p>
+        <p>
+          <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Notas para caseta</span>
+          <span class="text-lg font-semibold">{pass?.notas ?? "Sin notas"}</span>
+        </p>
+        <p>
+          <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Vigencia del pase</span>
+          <span class="text-lg font-semibold">
+            {pass?.vence_en ? new Date(pass.vence_en).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "N/A"}
+          </span>
+        </p>
+        <p>
+          <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Pase creado</span>
+          <span class="text-lg font-semibold">{pass?.created_at ? new Date(pass.created_at).toLocaleString("es-MX") : "N/A"}</span>
+        </p>
+        <p>
+          <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">ID registro</span>
+          <span class="break-all text-sm font-semibold">{row?.id ?? "N/A"}</span>
+        </p>
+        {
+          evidenciaUrl && (
+            <div class="mt-4">
+              <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Evidencia de salida</p>
+              <img src={evidenciaUrl} alt="Evidencia" class="mt-2 max-h-64 rounded-xl border border-[#ececec] object-contain md:max-h-80" />
+            </div>
+          )
+        }
       </div>
     </article>
   </section>
 
-  <div class="mt-6 space-y-3">
-    <button class="h-12 w-full rounded-xl bg-[#e8e8e8] text-lg font-semibold text-[#213138]">Imprimir Registro</button>
-    <button class="h-12 w-full rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-lg font-semibold text-white">Reportar Incidencia</button>
+  <div class="mt-8 space-y-3">
+    <button type="button" class="h-12 w-full rounded-xl bg-[#e8e8e8] text-lg font-semibold text-[#213138]">Imprimir registro</button>
+    <button type="button" class="h-12 w-full rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-lg font-semibold text-white">
+      Reportar incidencia
+    </button>
   </div>
 </AppLayout>
