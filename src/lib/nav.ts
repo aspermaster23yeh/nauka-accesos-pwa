@@ -19,3 +19,6 @@ export const adminNav: BottomNavItem[] = [
   { id: "operaciones", label: "Altas", icon: "group_add", href: "/admin/operaciones" },
   { id: "incidentes", label: "Incidentes", icon: "warning", href: "/admin/incidentes" }
 ];
+
+/** Navegación mínima para rol comité (solo lectura). */
+export const committeeReaderNav: BottomNavItem[] = [{ id: "bitacora", label: "Bitácora", icon: "history", href: "/admin/bitacora" }];

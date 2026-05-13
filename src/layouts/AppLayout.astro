@@ -46,16 +46,20 @@ const isAuthenticated = Boolean(profile && user);
 const roleLabel =
   profile?.role === "admin" || profile?.role === "super_admin"
     ? "Administrador"
-    : profile?.role === "guardia"
-      ? "Guardia"
-      : "Solicitante";
+    : profile?.role === "lector_junta"
+      ? "Comité (lectura)"
+      : profile?.role === "guardia"
+        ? "Guardia"
+        : "Solicitante";
 const userName = profile?.full_name ?? user?.email ?? "Usuario";
 const roleHome =
   profile?.role === "admin" || profile?.role === "super_admin"
     ? "/admin/dashboard"
-    : profile?.role === "guardia"
-      ? "/guardia/escaner"
-      : "/solicitante/inicio";
+    : profile?.role === "lector_junta"
+      ? "/admin/bitacora"
+      : profile?.role === "guardia"
+        ? "/guardia/escaner"
+        : "/solicitante/inicio";
 const inferredTopLeftKind: "link" | "nav-toggle" =
   topBar?.leftKind ??
   (navItems.length > 0 && isAuthenticated && (!topBar?.leftHref || topBar.leftHref === "#")
@@ -82,15 +86,17 @@ const roleLinks =
         { href: "/admin/operaciones", label: "Altas" },
         { href: "/admin/incidentes", label: "Incidentes" }
       ]
-    : profile?.role === "guardia"
-      ? [
-          { href: "/guardia/escaner", label: "Escaner QR" },
-          { href: "/guardia/acceso-denegado", label: "Accesos denegados" }
-        ]
-      : [
-          { href: "/solicitante/inicio", label: "Inicio" },
-          { href: "/solicitante/nuevo-pase", label: "Nuevo pase" }
-        ];
+    : profile?.role === "lector_junta"
+      ? [{ href: "/admin/bitacora", label: "Bitácora" }]
+      : profile?.role === "guardia"
+        ? [
+            { href: "/guardia/escaner", label: "Escaner QR" },
+            { href: "/guardia/acceso-denegado", label: "Accesos denegados" }
+          ]
+        : [
+            { href: "/solicitante/inicio", label: "Inicio" },
+            { href: "/solicitante/nuevo-pase", label: "Nuevo pase" }
+          ];
 ---
 
 <!doctype html>

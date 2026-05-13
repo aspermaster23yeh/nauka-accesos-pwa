@@ -156,11 +156,36 @@ export async function validateAccessQr(token: string, complejoId: string, guardi
   };
 }
 
+export type BitacoraScopeFilters = {
+  complejoId?: string;
+  /** Cuando `allComplejos` es true, filtra por un complejo concreto (opcional). */
+  filterComplejoId?: string;
+  query?: string;
+  allComplejos?: boolean;
+  limit?: number;
+  /** ISO 8601 inicio (inclusive). */
+  desde?: string;
+  /** ISO 8601 fin (inclusive; si es solo fecha se interpreta fin del día UTC en servidor). */
+  hasta?: string;
+  resultado?: "autorizado" | "rechazado";
+  paseId?: string;
+};
+
 export async function getBitacoraByComplejo(complejoId: string, query?: string, _accessToken?: string, limit?: number) {
   return getBitacoraScope({ complejoId, query, allComplejos: false, limit });
 }
 
-export async function getBitacoraScope(input: { complejoId?: string; query?: string; allComplejos?: boolean; limit?: number }) {
+function normalizeHastaIso(hasta?: string): string | undefined {
+  const raw = hasta?.trim();
+  if (!raw) return undefined;
+  if (raw.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return `${raw}T23:59:59.999Z`;
+  }
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+export async function getBitacoraScope(input: BitacoraScopeFilters) {
   const supabase = getSupabaseServiceClient();
   const normalizedQuery = input.query?.trim();
   const cap = Math.min(Math.max(input.limit ?? (input.allComplejos ? 200 : 100), 1), 500);
@@ -172,8 +197,24 @@ export async function getBitacoraScope(input: { complejoId?: string; query?: str
     .order("created_at", { ascending: false })
     .limit(cap);
 
-  if (!input.allComplejos && input.complejoId) {
+  if (input.paseId?.trim()) {
+    statement = statement.eq("pase_id", input.paseId.trim());
+  } else if (!input.allComplejos && input.complejoId) {
     statement = statement.eq("complejo_id", input.complejoId);
+  } else if (input.allComplejos && input.filterComplejoId?.trim()) {
+    statement = statement.eq("complejo_id", input.filterComplejoId.trim());
+  }
+
+  const desdeIso = input.desde?.trim();
+  if (desdeIso) {
+    const d = new Date(desdeIso);
+    if (!Number.isNaN(d.getTime())) statement = statement.gte("created_at", d.toISOString());
+  }
+  const hastaIso = normalizeHastaIso(input.hasta);
+  if (hastaIso) statement = statement.lte("created_at", hastaIso);
+
+  if (input.resultado === "autorizado" || input.resultado === "rechazado") {
+    statement = statement.eq("resultado", input.resultado);
   }
 
   if (normalizedQuery) {
@@ -210,6 +251,10 @@ export async function getBitacoraScope(input: { complejoId?: string; query?: str
       solicitante_lote: creator?.lot_number ?? null
     };
   });
+}
+
+export async function getBitacoraRowsForPaseId(paseId: string, limit = 300) {
+  return getBitacoraScope({ paseId, allComplejos: true, limit });
 }
 
 export async function getRecentPassesForComplejo(complejoId: string | null, limit = 12) {
@@ -339,6 +384,19 @@ export async function registerAccessMovement(input: {
     .eq("complejo_id", input.complejoId)
     .maybeSingle();
   if (error || !pass) throw new Error("Pase no encontrado.");
+
+  const dupWindowStart = new Date(Date.now() - 120_000).toISOString();
+  const { data: duplicateRow } = await supabase
+    .from("bitacora_accesos")
+    .select("id")
+    .eq("pase_id", pass.id)
+    .eq("tipo_evento", input.tipoEvento)
+    .eq("guardia_id", input.guardiaId)
+    .gte("created_at", dupWindowStart)
+    .maybeSingle();
+  if (duplicateRow?.id) {
+    return;
+  }
 
   const { data: bitacoraRow, error: bitacoraError } = await supabase
     .from("bitacora_accesos")

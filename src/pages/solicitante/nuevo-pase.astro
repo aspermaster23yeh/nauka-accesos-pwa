@@ -1,9 +1,31 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
+import { passMessages } from "../../lib/ux-messages";
 ---
 
 <AppLayout title="Nuevo Acceso - Nauka Nayarit" topBar={{ title: "Nuevo Acceso", leftIcon: "arrow_back", leftHref: "/solicitante/inicio" }}>
   <section class="nauka-card-aero p-5">
+    <div
+      id="pass-flow-error"
+      class="mb-6 hidden rounded-2xl border border-[#9a6b5c]/35 bg-[rgba(154,107,92,0.12)] p-4"
+      role="alert"
+    >
+      <div class="flex gap-3">
+        <span class="material-symbols-outlined shrink-0 text-2xl text-[#9a6b5c]">error</span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-[#213138]">No se pudo completar el registro</p>
+          <p id="pass-flow-error-text" class="mt-1 text-sm leading-relaxed text-[#5c6569]"></p>
+          <button
+            type="button"
+            id="pass-flow-error-dismiss"
+            class="mt-3 text-sm font-semibold text-[#3d5c4a] underline underline-offset-2"
+          >
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+
     <form id="pass-form" class="space-y-8">
       <label class="block">
         <span class="nauka-label-lux">Nombre del visitante</span>
@@ -68,7 +90,12 @@ import AppLayout from "../../layouts/AppLayout.astro";
 
     <div id="generated-pass" class="nauka-invitation mt-6 hidden text-center" data-state="authorized">
       <div class="nauka-invitation-inner">
-        <div class="mx-auto grid h-52 w-52 place-items-center rounded-3xl border border-[#213138]/[0.06] bg-[#FCFBF9]/90 shadow-[0_16px_40px_rgba(33,49,56,0.06)]">
+        <div class="mx-auto flex max-w-md flex-col items-center">
+          <span class="material-symbols-outlined text-5xl text-[#3d5c4a]">check_circle</span>
+          <p class="mt-3 font-display text-2xl text-[#213138]">Pase creado correctamente</p>
+          <p class="mt-2 text-sm text-[#5c6569]">Comparte el enlace o el QR con el visitante para presentarlo en caseta.</p>
+        </div>
+        <div class="mx-auto mt-6 grid h-52 w-52 place-items-center rounded-3xl border border-[#213138]/[0.06] bg-[#FCFBF9]/90 shadow-[0_16px_40px_rgba(33,49,56,0.06)]">
           <span class="material-symbols-outlined text-8xl text-[#3d5c4a]">qr_code_2</span>
         </div>
         <p id="generated-label" class="mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]"></p>
@@ -90,7 +117,26 @@ import AppLayout from "../../layouts/AppLayout.astro";
   </section>
 </AppLayout>
 
-<script is:inline>
+<script is:inline define:vars={{
+  msgNameDate: passMessages.validationNameDate,
+  msgPhotos: passMessages.validationPhotos,
+  msgFuture: passMessages.validationFuture,
+  msgMax30: passMessages.validationMax30,
+  msgCreateErr: passMessages.createErrorGeneric,
+  msgNoToken: passMessages.createErrorNoToken,
+  msgNetwork: passMessages.networkError
+}}>
+  function showPassError(message) {
+    const box = document.getElementById("pass-flow-error");
+    const text = document.getElementById("pass-flow-error-text");
+    if (text) text.textContent = message;
+    if (box) box.classList.remove("hidden");
+  }
+  function hidePassError() {
+    document.getElementById("pass-flow-error")?.classList.add("hidden");
+  }
+  document.getElementById("pass-flow-error-dismiss")?.addEventListener("click", hidePassError);
+
   const generateButton = document.getElementById("generate-pass");
   const shareButton = document.getElementById("share-whatsapp");
   const generatedLabel = document.getElementById("generated-label");
@@ -120,8 +166,9 @@ import AppLayout from "../../layouts/AppLayout.astro";
     const reason = visitReason instanceof HTMLSelectElement ? visitReason.value : "Visita";
     const notes = visitNotes instanceof HTMLTextAreaElement ? visitNotes.value.trim() : "";
     const venceEn = combineDateTime();
+    hidePassError();
     if (!name || !venceEn) {
-      alert("Completa nombre, fecha y hora.");
+      showPassError(msgNameDate);
       return;
     }
     const faceInput = visitorFace instanceof HTMLInputElement ? visitorFace : null;
@@ -129,18 +176,18 @@ import AppLayout from "../../layouts/AppLayout.astro";
     const faceFile = faceInput?.files?.[0];
     const ineFile = ineInput?.files?.[0];
     if (!faceFile || !ineFile) {
-      alert("Debes adjuntar la foto del rostro del visitante y la foto del INE.");
+      showPassError(msgPhotos);
       return;
     }
     const selected = new Date(venceEn);
     const now = new Date();
     const maxAllowed = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     if (selected <= now) {
-      alert("La fecha/hora del pase debe ser futura.");
+      showPassError(msgFuture);
       return;
     }
     if (selected > maxAllowed) {
-      alert("La fecha/hora no puede superar 30 dias.");
+      showPassError(msgMax30);
       return;
     }
     const fd = new FormData();
@@ -154,16 +201,20 @@ import AppLayout from "../../layouts/AppLayout.astro";
     const response = await fetch("/api/solicitante/pases", {
       method: "POST",
       body: fd
-    });
+    }).catch(() => null);
+    if (!response) {
+      showPassError(msgNetwork);
+      return;
+    }
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      alert(payload.error ?? "No se pudo crear el pase.");
+      showPassError(typeof payload.error === "string" ? payload.error : msgCreateErr);
       return;
     }
     const payload = await response.json();
     currentCode = payload.pass?.tokenQr ?? "";
     if (!currentCode) {
-      alert("No se recibió el token del pase.");
+      showPassError(msgNoToken);
       return;
     }
     currentShareUrl = `${window.location.origin}/pase/${encodeURIComponent(currentCode)}?type=entrada`;
@@ -188,7 +239,7 @@ import AppLayout from "../../layouts/AppLayout.astro";
     const reason = visitReason instanceof HTMLSelectElement ? visitReason.value || "Visita" : "Visita";
     const code = currentCode;
     if (!code) {
-      alert("Primero genera un pase.");
+      showPassError("Primero genera un pase con el formulario.");
       return;
     }
     const url = currentShareUrl || `${window.location.origin}/pase/${encodeURIComponent(code)}?type=entrada`;

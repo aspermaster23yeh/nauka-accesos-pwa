@@ -4,6 +4,7 @@ import type { AppRole } from "./supabase";
 export function getRoleHome(role: AppRole | null | undefined): string {
   if (!role) return "/";
   if (role === "super_admin" || role === "admin") return "/admin/dashboard";
+  if (role === "lector_junta") return "/admin/bitacora";
   if (role === "guardia") return "/guardia/escaner";
   return "/solicitante/inicio";
 }

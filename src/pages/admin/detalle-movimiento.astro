@@ -1,10 +1,12 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
-import { adminNav } from "../../lib/nav";
+import { adminNav, committeeReaderNav } from "../../lib/nav";
 import { getSupabaseServiceClient } from "../../lib/supabase";
+import { isCommitteeReader } from "../../lib/admin-access";
 
 const id = Astro.url.searchParams.get("id");
 const supabase = getSupabaseServiceClient();
+const profile = Astro.locals.profile;
 
 const { data: row } = id
   ? await supabase
@@ -15,6 +17,10 @@ const { data: row } = id
       .eq("id", id)
       .maybeSingle()
   : { data: null };
+
+if (profile && isCommitteeReader(profile.role) && row?.complejo_id && row.complejo_id !== (profile.complejo_id ?? "complejo-1")) {
+  return Astro.redirect("/admin/bitacora");
+}
 
 async function signBucket(bucket: string, path: string | null | undefined) {
   const p = path?.trim();
@@ -60,13 +66,14 @@ const [solicitanteFotoUrl, solicitanteIneUrl, visitanteFotoUrl, visitanteIneUrl]
 const solicitanteLabel = solicitanteProfile?.full_name ?? "Sistema Nauka";
 const solicitanteLote = solicitanteProfile?.lot_number ?? row?.lote_number ?? "—";
 const visitanteNombrePase = (pass as { visitante_nombre?: string } | null)?.visitante_nombre ?? row?.visitante_nombre ?? "Visitante";
+const navItems = profile && isCommitteeReader(profile.role) ? committeeReaderNav : adminNav;
 ---
 
 <AppLayout
   wide
   title="Detalle de Movimiento - Nauka Nayarit"
   topBar={{ title: "Nauka Nayarit", leftIcon: "arrow_back", leftHref: "/admin/bitacora", rightIcon: "more_vert", rightHref: "#" }}
-  navItems={adminNav}
+  navItems={navItems}
 >
   <div class={`mb-5 flex items-center gap-2 ${row?.resultado === "rechazado" ? "text-[#93000a]" : "text-[#006d36]"}`}>
     <span class="material-symbols-outlined">check_circle</span>
@@ -225,6 +232,15 @@ const visitanteNombrePase = (pass as { visitante_nombre?: string } | null)?.visi
           <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Pase creado</span>
           <span class="text-lg font-semibold">{pass?.created_at ? new Date(pass.created_at).toLocaleString("es-MX") : "N/A"}</span>
         </p>
+        {
+          row?.pase_id && (
+            <p class="mt-4">
+              <a href={`/admin/pase/${row.pase_id}`} class="text-base font-semibold text-[#3d5c4a] underline underline-offset-2">
+                Ver historial completo del pase
+              </a>
+            </p>
+          )
+        }
         <p>
           <span class="block text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">ID registro</span>
           <span class="break-all text-sm font-semibold">{row?.id ?? "N/A"}</span>

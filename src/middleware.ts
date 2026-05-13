@@ -1,20 +1,28 @@
 import { defineMiddleware } from "astro:middleware";
 import { getRoleHome } from "./lib/role-home";
 import { getProfileForUser, getUserFromAccessToken, type AppRole, type UserProfile } from "./lib/supabase";
-import { isPlatformAdmin } from "./lib/admin-access";
+import { canExportBitacora, isCommitteeReader, isCommitteeReaderAdminPath, isPlatformAdmin } from "./lib/admin-access";
 
 const protectedByRole: Record<AppRole, string[]> = {
   super_admin: [],
   admin: ["/admin", "/api/admin", "/api/super-admin"],
+  lector_junta: [],
   guardia: ["/guardia", "/api/guardia"],
   solicitante: ["/solicitante", "/api/solicitante"]
 };
 
 function getRequiredRole(pathname: string): AppRole | null {
-  if (protectedByRole.admin.some((prefix) => pathname.startsWith(prefix))) return "admin";
+  if (pathname.startsWith("/api/super-admin")) return "admin";
+  if (pathname.startsWith("/api/admin")) return "admin";
+  if (pathname.startsWith("/admin")) return "admin";
   if (protectedByRole.guardia.some((prefix) => pathname.startsWith(prefix))) return "guardia";
   if (protectedByRole.solicitante.some((prefix) => pathname.startsWith(prefix))) return "solicitante";
   return null;
+}
+
+/** Lector comité: solo export CSV de bitácora (GET). */
+function lectorMayAccessAdminApi(apiPath: string, method: string): boolean {
+  return method === "GET" && apiPath === "/admin/bitacora-export";
 }
 
 function isPublicPath(pathname: string): boolean {
@@ -89,10 +97,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (pathname.startsWith("/api") && !pathname.startsWith("/api/auth")) {
-      if (requiredRole === "admin" && !isPlatformAdmin(profile?.role)) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-      }
-      if (requiredRole && requiredRole !== "admin" && (!profile || profile.role !== requiredRole)) {
+      if (requiredRole === "admin") {
+        const method = context.request.method.toUpperCase();
+        if (isPlatformAdmin(profile?.role)) {
+          /* ok */
+        } else if (profile?.role === "lector_junta" && lectorMayAccessAdminApi(apiPath, method) && canExportBitacora(profile.role)) {
+          /* ok */
+        } else {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+        }
+      } else if (requiredRole && (!profile || profile.role !== requiredRole)) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
       }
       return next();
@@ -107,10 +121,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return context.redirect("/");
       }
       if (user && profile) {
-        if (!isPlatformAdmin(profile.role) && profile.onboarding_status === "suspendido" && !pathname.startsWith("/onboarding/cuenta-suspendida")) {
+        const exemptOnboarding = isPlatformAdmin(profile.role) || isCommitteeReader(profile.role);
+        if (!exemptOnboarding && profile.onboarding_status === "suspendido" && !pathname.startsWith("/onboarding/cuenta-suspendida")) {
           return context.redirect("/onboarding/cuenta-suspendida");
         }
-        if (!isPlatformAdmin(profile.role) && profile.onboarding_status === "pendiente_ine" && !pathname.startsWith("/onboarding/pendiente-ine")) {
+        if (!exemptOnboarding && profile.onboarding_status === "pendiente_ine" && !pathname.startsWith("/onboarding/pendiente-ine")) {
           return context.redirect("/onboarding/pendiente-ine");
         }
         if (needsTermsAcceptance(profile) && !isOnboardingPath(pathname)) {
@@ -124,8 +139,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return context.redirect("/");
     }
 
-    if (isPlatformAdmin(profile.role)) {
-      /* sin bloqueos de términos / INE para operadores de plataforma */
+    if (isPlatformAdmin(profile.role) || isCommitteeReader(profile.role)) {
+      /* sin bloqueos de términos / INE para operadores de plataforma y comité */
     } else if (profile.onboarding_status === "suspendido") {
       if (!pathname.startsWith("/onboarding/cuenta-suspendida")) {
         return context.redirect("/onboarding/cuenta-suspendida");
@@ -140,10 +155,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return context.redirect("/onboarding/terminos");
     }
 
-    if (requiredRole === "admin" && !isPlatformAdmin(profile.role)) {
-      return context.redirect(getRoleHome(profile.role));
-    }
-    if (requiredRole !== "admin" && profile.role !== requiredRole) {
+    if (requiredRole === "admin") {
+      if (isPlatformAdmin(profile.role)) {
+        /* full admin */
+      } else if (profile.role === "lector_junta" && isCommitteeReaderAdminPath(pathname)) {
+        /* lectura comité */
+      } else {
+        return context.redirect(getRoleHome(profile.role));
+      }
+    } else if (requiredRole && profile.role !== requiredRole) {
       return context.redirect(getRoleHome(profile.role));
     }
     return next();

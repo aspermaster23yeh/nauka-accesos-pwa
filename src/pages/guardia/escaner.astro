@@ -33,6 +33,20 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       />
       <button id="validate-token" class="nauka-btn-primary h-11 shrink-0 rounded-2xl px-4 text-sm font-semibold">Validar</button>
     </div>
+    <div id="guard-queue-bar" class="mt-3 hidden rounded-2xl border border-[#213138]/10 bg-[#FCFBF9]/95 p-3">
+      <p id="guard-queue-text" class="text-center text-sm font-semibold text-[#213138]"></p>
+      <button type="button" id="guard-sync-now" class="nauka-btn-primary mt-2 h-10 w-full rounded-xl text-sm font-semibold">
+        Sincronizar ahora
+      </button>
+    </div>
+    <div
+      id="scanner-network-banner"
+      class="mt-3 hidden rounded-2xl border border-[#9a6b5c]/30 bg-[rgba(154,107,92,0.1)] p-3 text-center"
+      role="alert"
+    >
+      <p class="text-sm font-semibold text-[#213138]">Sin conexión o sin respuesta del servidor</p>
+      <p class="mt-1 text-xs text-[#5c6569]">Comprueba datos móviles o Wi‑Fi e inténtalo de nuevo.</p>
+    </div>
     <label id="evidence-wrap" class="mt-4 hidden flex-col gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#5c6569]">
       Evidencia de salida
       <input id="evidence-input" type="file" accept="image/*" capture="environment" class="text-sm font-normal normal-case tracking-normal" />
@@ -165,6 +179,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
 <script>
   import { BrowserMultiFormatReader } from "@zxing/browser";
   import type { IScannerControls } from "@zxing/browser";
+  import { countPendingGuardMovements, enqueueGuardMovement, flushGuardMovementQueue } from "../../lib/guard-queue";
 
   const scannerRoot = document.querySelector("[data-complejo-id]");
   const accessButtons = Array.from(document.querySelectorAll(".access-toggle"));
@@ -189,6 +204,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   let accessType = "entrada";
   let qrState = "invalido";
   let currentToken = "";
+  let networkError = false;
   let scanIntervalId = 0;
   let zxingControls: IScannerControls | null = null;
   let zxingScanConsumed = false;
@@ -345,12 +361,17 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   };
 
   const validateTokenOnServer = async (token: string) => {
-    const response = await fetch("/api/validar-qr", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, complejoId: resolvedComplejoId })
-    });
-    if (!response.ok) throw new Error("No se pudo validar el token.");
+    let response: Response;
+    try {
+      response = await fetch("/api/validar-qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, complejoId: resolvedComplejoId })
+      });
+    } catch {
+      throw new Error("__network__");
+    }
+    if (!response.ok) throw new Error("__server__");
     return response.json();
   };
 
@@ -359,6 +380,7 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     if (!normalizedToken) return;
     currentToken = normalizedToken;
     passDetail = null;
+    networkError = false;
     try {
       const result = (await validateTokenOnServer(normalizedToken)) as PassDetail & {
         status: string;
@@ -394,12 +416,19 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
             : `Motivo: ${result.razon ?? "Token no encontrado o inválido"}`;
       }
       setCameraStatus(result.status === "authorized" ? "Código válido." : "Código no válido.", result.status !== "authorized");
-    } catch {
+    } catch (err) {
       hasValidated = true;
       qrState = "invalido";
       passDetail = null;
-      if (reasonNode) reasonNode.textContent = "Error de validación. Intenta de nuevo.";
-      setCameraStatus("No se pudo validar.", true);
+      networkError = err instanceof Error && err.message === "__network__";
+      if (visitorNameNode) visitorNameNode.textContent = "Sin lectura";
+      if (lotNode) lotNode.textContent = "—";
+      if (reasonNode) {
+        reasonNode.textContent = networkError
+          ? "Sin conexión. Revisa la red o inténtalo de nuevo."
+          : "No se pudo validar el código. Intenta otra vez.";
+      }
+      setCameraStatus(networkError ? "Sin conexión." : "Error de validación.", true);
     }
     render();
   };
@@ -495,6 +524,20 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     }
   };
 
+  const updateQueueUi = async () => {
+    const n = await countPendingGuardMovements();
+    const bar = document.getElementById("guard-queue-bar");
+    const text = document.getElementById("guard-queue-text");
+    if (bar && text) {
+      if (n > 0) {
+        bar.classList.remove("hidden");
+        text.textContent = `Pendientes de sincronizar: ${n}`;
+      } else {
+        bar.classList.add("hidden");
+      }
+    }
+  };
+
   const registerMovement = async () => {
     if (!currentToken || qrState !== "valido") {
       const reason = encodeURIComponent(reasonNode?.textContent ?? "Token invalido");
@@ -511,7 +554,13 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       }
       const fd = new FormData();
       fd.append("file", file);
-      const uploadRes = await fetch("/api/guardia/subir-evidencia", { method: "POST", body: fd });
+      let uploadRes: Response;
+      try {
+        uploadRes = await fetch("/api/guardia/subir-evidencia", { method: "POST", body: fd });
+      } catch {
+        alert("Sin conexión. No se pudo subir la evidencia. Intenta cuando haya red.");
+        return;
+      }
       if (!uploadRes.ok) {
         const payload = await uploadRes.json().catch(() => ({}));
         alert(payload.error ?? "No se pudo subir la evidencia.");
@@ -524,18 +573,40 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
         return;
       }
     }
-    const response = await fetch("/api/guardia/registrar-movimiento", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    let response: Response;
+    try {
+      response = await fetch("/api/guardia/registrar-movimiento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: currentToken,
+          tipoEvento: accessType,
+          evidenciaStoragePath: evidenciaPath || undefined
+        })
+      });
+    } catch {
+      await enqueueGuardMovement({
         token: currentToken,
-        tipoEvento: accessType,
-        evidenciaStoragePath: evidenciaPath || undefined
-      })
-    });
+        tipoEvento: accessType === "salida" ? "salida" : "entrada",
+        evidenciaStoragePath: evidenciaPath || null
+      });
+      setCameraStatus("Movimiento en cola local. Sincroniza cuando haya red.");
+      void updateQueueUi();
+      return;
+    }
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      alert(payload.error ?? "No se pudo registrar movimiento.");
+      if (response.status === 400) {
+        alert(typeof payload.error === "string" ? payload.error : "No se pudo registrar movimiento.");
+        return;
+      }
+      await enqueueGuardMovement({
+        token: currentToken,
+        tipoEvento: accessType === "salida" ? "salida" : "entrada",
+        evidenciaStoragePath: evidenciaPath || null
+      });
+      setCameraStatus("Movimiento en cola local. Sincroniza cuando haya red.");
+      void updateQueueUi();
       return;
     }
     setCameraStatus("Registrado. El administrador recibió la notificación de " + (accessType === "salida" ? "salida" : "entrada") + ".");
@@ -553,6 +624,10 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     });
 
     if (!actionLabel || !statusTitle || !statusChip || !accessAction) return;
+    const netBanner = document.getElementById("scanner-network-banner");
+    if (netBanner) {
+      netBanner.classList.toggle("hidden", !(networkError && hasValidated));
+    }
     if (evidenceWrap) {
       evidenceWrap.classList.toggle("hidden", accessType !== "salida");
       evidenceWrap.classList.toggle("flex", accessType === "salida");
@@ -568,12 +643,19 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
     }
 
     if (chipLabel) {
-      chipLabel.textContent = !hasValidated ? "En espera" : qrState === "valido" ? "Invitación válida" : "No autorizado";
+      chipLabel.textContent = !hasValidated
+        ? "En espera"
+        : networkError
+          ? "Sin red"
+          : qrState === "valido"
+            ? "Invitación válida"
+            : "No autorizado";
     }
 
     const chipIcon = statusChip.querySelector(".material-symbols-outlined");
     if (chipIcon) {
-      chipIcon.textContent = state === "authorized" ? "verified" : state === "denied" ? "gpp_maybe" : "qr_code_scanner";
+      const icon = !hasValidated ? "qr_code_scanner" : networkError ? "wifi_off" : qrState === "valido" ? "verified" : "gpp_maybe";
+      chipIcon.textContent = icon;
       chipIcon.className = "material-symbols-outlined text-[20px]";
     }
 
@@ -586,6 +668,16 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
       if (reviewLink instanceof HTMLAnchorElement) {
         reviewLink.href = "/guardia/escaner";
         reviewLink.textContent = "Escanear otro código";
+      }
+    } else if (networkError && hasValidated) {
+      actionLabel.textContent = "Reintentar validación";
+      statusTitle.textContent = "Sin conexión";
+      statusChip.className = "nauka-chip-warn mb-4 inline-flex items-center gap-2 rounded-full px-3 py-2";
+      accessAction.className =
+        "nauka-btn-primary mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-lg font-semibold transition duration-[400ms] ease-in-out";
+      if (reviewLink instanceof HTMLAnchorElement) {
+        reviewLink.href = "/guardia/escaner";
+        reviewLink.textContent = "Limpiar pantalla";
       }
     } else if (hasValidated) {
       actionLabel.textContent = "Ver motivo en caseta";
@@ -621,6 +713,10 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
 
   accessAction?.addEventListener("click", (event) => {
     event.preventDefault();
+    if (networkError && currentToken) {
+      void processToken(currentToken);
+      return;
+    }
     registerMovement();
   });
 
@@ -634,6 +730,13 @@ const complejoId = Astro.locals.profile?.complejo_id ?? "complejo-1";
   });
 
   readStateFromUrl();
+  void updateQueueUi();
+  void flushGuardMovementQueue(() => {}).then(() => updateQueueUi());
+
+  document.getElementById("guard-sync-now")?.addEventListener("click", () => {
+    void flushGuardMovementQueue(() => {}).then(() => updateQueueUi());
+  });
+
   const okParam = new URLSearchParams(window.location.search).get("ok");
   if (okParam === "1") {
     setCameraStatus("Último movimiento enviado al panel del administrador.");

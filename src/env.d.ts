@@ -1,6 +1,6 @@
 /// <reference types="astro/client" />
 
-type AppRole = "solicitante" | "guardia" | "admin" | "super_admin";
+type AppRole = "solicitante" | "guardia" | "admin" | "super_admin" | "lector_junta";
 
 interface UserProfile {
   id: string;
@@ -13,6 +13,8 @@ interface UserProfile {
   onboarding_status: string;
   ine_storage_path: string | null;
   photo_storage_path: string | null;
+  approved_at?: string | null;
+  approved_by?: string | null;
 }
 
 declare namespace App {

@@ -1,0 +1,125 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import { adminNav, committeeReaderNav } from "../../../lib/nav";
+import { getBitacoraRowsForPaseId } from "../../../lib/access";
+import { getSupabaseServiceClient } from "../../../lib/supabase";
+import { isCommitteeReader } from "../../../lib/admin-access";
+
+const paseId = Astro.params.id?.trim();
+const profile = Astro.locals.profile;
+if (!paseId || !profile) {
+  return Astro.redirect("/admin/bitacora");
+}
+
+const supabase = getSupabaseServiceClient();
+const { data: pass } = await supabase
+  .from("pases_acceso")
+  .select("id, visitante_nombre, motivo, notas, vence_en, estado, complejo_id, created_at, token_qr, lote_number, creado_por")
+  .eq("id", paseId)
+  .maybeSingle();
+
+if (!pass) {
+  return Astro.redirect("/admin/bitacora");
+}
+
+if (isCommitteeReader(profile.role) && pass.complejo_id !== (profile.complejo_id ?? "complejo-1")) {
+  return Astro.redirect("/admin/bitacora");
+}
+
+const { data: solicitante } = pass.creado_por
+  ? await supabase.from("profiles").select("full_name, lot_number").eq("id", pass.creado_por).maybeSingle()
+  : { data: null };
+
+const movimientos = await getBitacoraRowsForPaseId(paseId, 400);
+const navItems = isCommitteeReader(profile.role) ? committeeReaderNav : adminNav;
+---
+
+<AppLayout
+  wide
+  title={`Historial pase · ${pass.visitante_nombre}`}
+  topBar={{ title: "Historial por pase", leftIcon: "arrow_back", leftHref: "/admin/bitacora", rightIcon: "notifications", rightHref: "#" }}
+  navItems={navItems}
+  activeNav="bitacora"
+  pageTitle={pass.visitante_nombre}
+>
+  <p class="-mt-5 mb-4 text-sm font-bold uppercase tracking-[0.08em] text-[#7a7e82] md:-mt-2">Bitácora vinculada a este pase</p>
+
+  <section class="mb-8 rounded-2xl border border-[#213138]/[0.06] bg-white/90 p-5 shadow-sm">
+    <p class="text-xs font-bold uppercase tracking-[0.1em] text-[#5f6368]">Visitante</p>
+    <p class="font-display text-2xl text-[#213138]">{pass.visitante_nombre}</p>
+    <div class="mt-4 grid gap-3 text-sm text-[#5f6368] sm:grid-cols-2">
+      <p>
+        <span class="block text-xs font-bold uppercase text-[#7a7e82]">Complejo</span>
+        <span class="font-semibold text-[#213138]">{pass.complejo_id}</span>
+      </p>
+      <p>
+        <span class="block text-xs font-bold uppercase text-[#7a7e82]">Lote</span>
+        <span class="font-semibold text-[#213138]">{pass.lote_number ?? "—"}</span>
+      </p>
+      <p>
+        <span class="block text-xs font-bold uppercase text-[#7a7e82]">Motivo</span>
+        <span class="font-semibold text-[#213138]">{pass.motivo ?? "—"}</span>
+      </p>
+      <p>
+        <span class="block text-xs font-bold uppercase text-[#7a7e82]">Estado</span>
+        <span class="font-semibold text-[#213138]">{pass.estado}</span>
+      </p>
+      <p class="sm:col-span-2">
+        <span class="block text-xs font-bold uppercase text-[#7a7e82]">Vigencia</span>
+        <span class="font-semibold text-[#213138]">
+          {pass.vence_en ? new Date(pass.vence_en).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "—"}
+        </span>
+      </p>
+      <p class="sm:col-span-2">
+        <span class="block text-xs font-bold uppercase text-[#7a7e82]">Solicitante</span>
+        <span class="font-semibold text-[#213138]">
+          {solicitante?.full_name ?? "—"}
+          {solicitante?.lot_number ? ` · lote ${solicitante.lot_number}` : ""}
+        </span>
+      </p>
+    </div>
+    <p class="mt-4 break-all text-xs text-[#7a7e82]">
+      ID pase: <span class="font-mono text-[#213138]">{pass.id}</span> · Token:{" "}
+      <span class="font-mono text-[#213138]">{(pass.token_qr as string)?.slice(0, 12)}…</span>
+    </p>
+  </section>
+
+  <div class="my-5 flex items-center gap-3">
+    <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">Movimientos ({movimientos.length})</p>
+    <div class="h-px flex-1 bg-[#eeeeee]"></div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+    {
+      movimientos.length === 0 ? (
+        <p class="col-span-full rounded-xl border border-dashed border-[#cfd4d9] bg-white/80 p-6 text-sm text-[#5f6368]">
+          Aún no hay eventos de bitácora para este pase.
+        </p>
+      ) : (
+        movimientos.map((row) => (
+          <a
+            href={`/admin/detalle-movimiento?id=${row.id}`}
+            class={`flex items-center gap-3 rounded-xl p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)] ${row.resultado === "rechazado" ? "bg-[#ffdad6]/35" : "bg-white"}`}
+          >
+            <div
+              class:list={[
+                "grid h-11 w-11 shrink-0 place-items-center rounded-full",
+                row.resultado === "rechazado" ? "bg-[#ffdad6] text-[#ba1a1a]" : "bg-[#83fba5]/25 text-[#006d36]"
+              ]}
+            >
+              <span class="material-symbols-outlined">{row.resultado === "rechazado" ? "warning" : "history"}</span>
+            </div>
+            <div class="min-w-0">
+              <p class={`truncate text-lg font-semibold ${row.resultado === "rechazado" ? "text-[#93000a]" : "text-[#213138]"}`}>
+                {new Date(row.created_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })} ·{" "}
+                {(row.tipo_evento ?? "").toUpperCase()}
+              </p>
+              <p class="truncate text-sm text-[#5f6368]">{row.resultado}</p>
+              {row.razon && <p class="truncate text-xs text-[#5f6368]">{row.razon}</p>}
+            </div>
+          </a>
+        ))
+      )
+    }
+  </div>
+</AppLayout>

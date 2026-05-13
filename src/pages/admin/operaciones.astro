@@ -24,9 +24,24 @@ try {
 const supabase = getSupabaseServiceClient();
 const { data: profiles } = await supabase
   .from("profiles")
-  .select("id, full_name, lot_number, complejo_id, role, onboarding_status, ine_storage_path, photo_storage_path, created_at")
+  .select(
+    "id, full_name, lot_number, complejo_id, role, onboarding_status, ine_storage_path, photo_storage_path, created_at, approved_at, approved_by"
+  )
   .order("created_at", { ascending: false })
   .limit(40);
+
+const approverIds = [...new Set((profiles ?? []).map((p) => (p as { approved_by?: string | null }).approved_by).filter(Boolean))] as string[];
+const { data: approverProfiles } =
+  approverIds.length > 0 ? await supabase.from("profiles").select("id, full_name").in("id", approverIds) : { data: [] as { id: string; full_name: string | null }[] };
+const approverNameById = new Map((approverProfiles ?? []).map((a) => [a.id, a.full_name]));
+
+const profileRows = (profiles ?? []).map((p) => {
+  const row = p as typeof p & { approved_at?: string | null; approved_by?: string | null };
+  return {
+    ...row,
+    approver_name: row.approved_by ? approverNameById.get(row.approved_by) ?? null : null
+  };
+});
 ---
 
 <AppLayout
@@ -83,6 +98,7 @@ const { data: profiles } = await supabase
       <select name="role" class="nauka-input-lux text-sm" required>
         <option value="guardia">Guardia</option>
         <option value="admin">Administrador</option>
+        <option value="lector_junta">Comité (solo lectura)</option>
       </select>
       <label class="block text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#5c6569]">
         INE (opcional)
@@ -145,13 +161,20 @@ const { data: profiles } = await supabase
 
   <section id="perfiles" class="mt-10 space-y-2">
     <h2 class="font-display text-xl text-[#213138]">Perfiles recientes</h2>
-    {(profiles ?? []).map((p) => (
+    {profileRows.map((p) => (
       <div class="nauka-glass-editorial flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
         <div>
           <p class="font-semibold text-[#213138]">{p.full_name ?? p.id}</p>
           <p class="text-[#5c6569]">
             {p.role} · {p.complejo_id} · lote {p.lot_number ?? "—"} · {p.onboarding_status}
           </p>
+          {p.approved_at && (
+            <p class="mt-1 text-xs text-[#3d5c4a]">
+              Aprobación perfil:{" "}
+              {new Date(p.approved_at as string).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}
+              {p.approver_name ? ` · por ${p.approver_name}` : ""}
+            </p>
+          )}
           {p.role === "solicitante" && (
             <p class="mt-1 text-xs text-[#5c6569]">
               Expediente: foto {p.photo_storage_path ? "✓" : "—"} · INE {p.ine_storage_path ? "✓" : "—"}

@@ -1,16 +1,61 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import OnboardingSteps from "../../components/onboarding/OnboardingSteps.astro";
+import { supportMailto } from "../../lib/ux-messages";
+
+const contactHref = supportMailto("Cuenta suspendida — Nauka Accesos");
+const hasMail = contactHref !== "#";
 ---
 
 <MainLayout title="Cuenta suspendida">
-  <div class="rounded-2xl bg-red-50 p-6 text-red-950">
-    <p class="text-lg font-semibold">Acceso suspendido</p>
-    <p class="mt-2 text-sm leading-relaxed">Tu cuenta no puede operar en este momento. Contacta a administración de Nauka.</p>
-    <a href="/" class="mt-6 flex h-12 w-full items-center justify-center rounded-2xl bg-red-900 text-sm font-semibold text-white transition hover:opacity-95">
-      Ir a la página principal
-    </a>
+  <div class="rounded-2xl border border-red-200/80 bg-gradient-to-br from-red-50 to-white p-6 text-red-950 sm:p-8">
+    <OnboardingSteps
+      steps={[
+        { label: "Cuenta", done: true },
+        { label: "Estado", current: true },
+        { label: "Reactivación", done: false }
+      ]}
+    />
+
+    <div class="flex items-start gap-3">
+      <span class="material-symbols-outlined shrink-0 text-3xl text-red-800">gpp_maybe</span>
+      <div>
+        <p class="font-display text-xl text-red-950">Acceso suspendido</p>
+        <p class="mt-2 text-sm leading-relaxed text-red-900/90">
+          Tu cuenta no puede operar en Nauka Accesos en este momento. Suele deberse a una revisión de cumplimiento o una
+          decisión de administración del complejo.
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-red-200/60 bg-white/80 p-4">
+      <p class="text-xs font-bold uppercase tracking-[0.12em] text-red-800">Qué puedes hacer</p>
+      <ul class="mt-2 list-inside list-disc space-y-1.5 text-sm text-red-950/90">
+        <li>Contacta a administración de tu complejo o a soporte Nauka con tu correo registrado.</li>
+        <li>No intentes crear otra cuenta con el mismo correo; es mejor resolver la suspensión.</li>
+      </ul>
+    </div>
+
+    <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+      {
+        hasMail ? (
+          <a
+            href={contactHref}
+            class="inline-flex h-12 flex-1 items-center justify-center rounded-2xl border border-red-300 bg-white px-4 text-sm font-semibold text-red-950 transition hover:bg-red-50"
+          >
+            Contactar soporte
+          </a>
+        ) : null
+      }
+      <a
+        href="/"
+        class="inline-flex h-12 flex-1 items-center justify-center rounded-2xl bg-red-900 text-sm font-semibold text-white transition hover:opacity-95"
+      >
+        Ir a la página principal
+      </a>
+    </div>
     <form method="post" action="/api/auth/logout" class="mt-4">
-      <button type="submit" class="text-sm font-semibold text-red-900 underline">Cerrar sesión</button>
+      <button type="submit" class="text-sm font-semibold text-red-900 underline underline-offset-2">Cerrar sesión</button>
     </form>
   </div>
 </MainLayout>

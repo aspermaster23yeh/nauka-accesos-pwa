@@ -1,23 +1,85 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import OnboardingSteps from "../../components/onboarding/OnboardingSteps.astro";
+import { supportMailto } from "../../lib/ux-messages";
+
+const profile = Astro.locals.profile;
+const role = profile?.role ?? "solicitante";
+const isGuardia = role === "guardia";
+const contactHref = supportMailto("Validación de INE — Nauka Accesos");
+const hasMail = contactHref !== "#";
 ---
 
-<MainLayout title="Documentación pendiente">
-  <div class="nauka-card-aero border border-[#9a6b5c]/12 bg-gradient-to-br from-[#fdfcfa] to-[#f5ebe8]/60 p-6">
-    <p class="font-display text-xl text-[#213138]">INE pendiente de validación</p>
-    <p class="mt-2 text-sm leading-relaxed text-[#5c6569]">
-      Tu cuenta está registrada pero falta cargar o validar tu identificación (INE) con el equipo de Nauka. Contacta al administrador para completar el alta.
+<MainLayout title="Validación de identificación">
+  <div class="nauka-card-aero border border-[#213138]/[0.08] bg-gradient-to-br from-[#fdfcfa] to-[#f5f2ed]/80 p-6 sm:p-8">
+    <OnboardingSteps
+      steps={[
+        { label: "Cuenta creada", done: true },
+        { label: "INE / expediente", current: true },
+        { label: "Cuenta activa", done: false }
+      ]}
+    />
+
+    <p class="font-display text-xl text-[#213138] sm:text-2xl">Identificación pendiente de revisión</p>
+    <p class="mt-3 text-sm leading-relaxed text-[#5c6569]">
+      {
+        isGuardia ? (
+          <>
+            Tu perfil de <strong>guardia</strong> está registrado; falta que administración valide tu INE en expediente
+            antes de habilitar el escáner en caseta.
+          </>
+        ) : (
+          <>
+            Tu perfil de <strong>solicitante</strong> está registrado; falta validar tu INE (o la documentación que cargaste
+            al registrarte) con el equipo del complejo.
+          </>
+        )
+      }
     </p>
-    <a
-      href="/"
-      class="nauka-btn-primary mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-semibold"
-    >
-      Ir a la página principal
-    </a>
+
+    <div class="mt-6 rounded-2xl border border-[#3d5c4a]/20 bg-[rgba(61,92,74,0.08)] p-4">
+      <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#2d4a3a]">Qué ocurre ahora</p>
+      <ul class="mt-2 list-inside list-disc space-y-1.5 text-sm text-[#213138]">
+        <li>Un administrador revisa tu documentación en el panel de operaciones.</li>
+        <li>Al aprobar, tu estado pasa a <strong>activo</strong> y podrás usar la app con normalidad.</li>
+        <li>Si falta algo, te contactarán por el correo de tu cuenta.</li>
+      </ul>
+    </div>
+
+    <p class="mt-4 text-xs text-[#5c6569]">Tiempo típico de revisión: <strong>1 día hábil</strong> (puede variar según administración).</p>
+
+    <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      {
+        hasMail ? (
+          <a
+            href={contactHref}
+            class="inline-flex h-12 flex-1 items-center justify-center rounded-2xl border border-[#213138]/15 bg-white px-4 text-sm font-semibold text-[#213138] transition hover:bg-[#213138]/[0.04]"
+          >
+            Escribir a soporte
+          </a>
+        ) : null
+      }
+      <a
+        href="/"
+        class="nauka-btn-primary inline-flex h-12 flex-1 items-center justify-center rounded-2xl px-4 text-sm font-semibold sm:min-w-[12rem]"
+      >
+        Volver al inicio
+      </a>
+    </div>
     <form method="post" action="/api/auth/logout" class="mt-4">
-      <button type="submit" class="text-sm font-semibold text-[#3d5c4a] underline decoration-[#3d5c4a]/30 underline-offset-4 transition duration-[400ms] ease-in-out hover:text-[#213138]">
+      <button
+        type="submit"
+        class="text-sm font-semibold text-[#3d5c4a] underline decoration-[#3d5c4a]/30 underline-offset-4 transition hover:text-[#213138]"
+      >
         Cerrar sesión
       </button>
     </form>
+    {
+      !hasMail && (
+        <p class="mt-3 text-xs text-[#7a7e82]">
+          Para mostrar el botón “Escribir a soporte”, define la variable de entorno <code class="rounded bg-[#213138]/5 px-1">PUBLIC_SUPPORT_EMAIL</code> en tu despliegue.
+        </p>
+      )
+    }
   </div>
 </MainLayout>

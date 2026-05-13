@@ -5,7 +5,7 @@ import { getSupabaseServiceClient, type AppRole } from "../../../lib/supabase";
 
 export const prerender = false;
 
-const allowedRoles: AppRole[] = ["solicitante", "guardia", "admin"];
+const allowedRoles: AppRole[] = ["solicitante", "guardia", "admin", "lector_junta"];
 const maxBytes = 6 * 1024 * 1024;
 
 async function uploadProfileImage(
@@ -80,9 +80,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const onboardingForAuth =
     inviteRole === "solicitante"
       ? "pendiente_terminos"
-      : ineIsFile
-        ? "pendiente_terminos"
-        : "pendiente_ine";
+      : inviteRole === "lector_junta"
+        ? "activo"
+        : ineIsFile
+          ? "pendiente_terminos"
+          : "pendiente_ine";
 
   const service = getSupabaseServiceClient();
   const password = `Aa1!${randomBytes(18).toString("base64url")}`;
@@ -134,7 +136,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         inePath = r.path;
       }
     }
-    if (photoIsFile && photoFile instanceof File && inviteRole !== "solicitante") {
+    if (photoIsFile && photoFile instanceof File && inviteRole !== "solicitante" && inviteRole !== "lector_junta") {
       const r = await uploadProfileImage(service, "fotos_perfil", complejoId, userId, "foto", photoFile);
       if (!r.error && r.path) {
         photoPath = r.path;
@@ -145,25 +147,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const onboardingStatus =
     inviteRole === "solicitante"
       ? "pendiente_terminos"
-      : inePath
-        ? "pendiente_terminos"
-        : "pendiente_ine";
+      : inviteRole === "lector_junta"
+        ? "activo"
+        : inePath
+          ? "pendiente_terminos"
+          : "pendiente_ine";
 
-  const { error: profileErr } = await service.from("profiles").upsert(
-    {
-      id: userId,
-      full_name: fullName,
-      lot_number: lotNumber,
-      complejo_id: complejoId,
-      role: inviteRole,
-      ine_storage_path: inePath,
-      photo_storage_path: photoPath,
-      onboarding_status: onboardingStatus,
-      approved_at: new Date().toISOString(),
-      approved_by: locals.user.id
-    },
-    { onConflict: "id" }
-  );
+  const profileRow: Record<string, unknown> = {
+    id: userId,
+    full_name: fullName,
+    lot_number: lotNumber,
+    complejo_id: complejoId,
+    role: inviteRole,
+    ine_storage_path: inePath,
+    photo_storage_path: photoPath,
+    onboarding_status: onboardingStatus,
+    approved_at: new Date().toISOString(),
+    approved_by: locals.user.id
+  };
+  if (inviteRole === "lector_junta") {
+    profileRow.terms_accepted_at = new Date().toISOString();
+    profileRow.terms_version = "1";
+  }
+
+  const { error: profileErr } = await service.from("profiles").upsert(profileRow, { onConflict: "id" });
 
   if (profileErr) {
     return new Response(JSON.stringify({ error: profileErr.message }), { status: 500 });

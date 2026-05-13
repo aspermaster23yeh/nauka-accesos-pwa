@@ -1,32 +1,130 @@
 ---
 import AppLayout from "../../layouts/AppLayout.astro";
-import { adminNav } from "../../lib/nav";
-import { getBitacoraScope } from "../../lib/access";
+import { adminNav, committeeReaderNav } from "../../lib/nav";
+import { getBitacoraScope, getComplejosList } from "../../lib/access";
+import { isCommitteeReader, isPlatformAdmin } from "../../lib/admin-access";
+
 const q = Astro.url.searchParams.get("q") ?? "";
-const registros = await getBitacoraScope({ allComplejos: true, query: q });
+const desde = Astro.url.searchParams.get("desde") ?? "";
+const hasta = Astro.url.searchParams.get("hasta") ?? "";
+const resultado = Astro.url.searchParams.get("resultado") ?? "";
+const complejoFilter = Astro.url.searchParams.get("complejo_id") ?? "";
+
+const profile = Astro.locals.profile;
+const reader = isCommitteeReader(profile?.role);
+const platformAdmin = isPlatformAdmin(profile?.role);
+
+let complejos: { id: string; nombre: string }[] = [];
+try {
+  complejos = platformAdmin ? await getComplejosList() : [];
+} catch {
+  complejos = [];
+}
+
+const registros = await getBitacoraScope({
+  query: q || undefined,
+  desde: desde || undefined,
+  hasta: hasta || undefined,
+  resultado: resultado === "autorizado" || resultado === "rechazado" ? resultado : undefined,
+  allComplejos: platformAdmin && !reader,
+  complejoId: reader ? (profile?.complejo_id ?? "complejo-1") : undefined,
+  filterComplejoId: platformAdmin && complejoFilter.trim() ? complejoFilter.trim() : undefined
+});
+
+const exportQs = new URLSearchParams();
+if (q.trim()) exportQs.set("q", q.trim());
+if (desde.trim()) exportQs.set("desde", desde.trim());
+if (hasta.trim()) exportQs.set("hasta", hasta.trim());
+if (resultado === "autorizado" || resultado === "rechazado") exportQs.set("resultado", resultado);
+if (complejoFilter.trim()) exportQs.set("complejo_id", complejoFilter.trim());
+const exportHref = `/api/admin/bitacora-export${exportQs.toString() ? `?${exportQs.toString()}` : ""}`;
+
+const navItems = reader ? committeeReaderNav : adminNav;
 ---
 
 <AppLayout
   wide
   title="Bitácora - Nauka Nayarit"
   topBar={{ title: "Nauka Nayarit", leftIcon: "person", leftHref: "#", rightIcon: "notifications", rightHref: "#" }}
-  navItems={adminNav}
+  navItems={navItems}
+  activeNav="bitacora"
   pageTitle="Registro digital"
 >
   <p class="-mt-5 mb-6 text-sm font-bold uppercase tracking-[0.08em] text-[#7a7e82] md:-mt-2">
-    Bitácora de accesos · todos los complejos
+    {reader ? "Bitácora de accesos · tu complejo" : "Bitácora de accesos · todos los complejos"}
   </p>
 
-  <form class="space-y-3" method="get">
+  <form id="bitacora-filter-form" class="space-y-3" method="get" autocomplete="off">
     <div class="relative">
       <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#73787b]">search</span>
-      <input name="q" value={q} class="h-12 w-full rounded-xl bg-[#f3f3f4] pl-11 pr-4 text-base outline-none" placeholder="Buscar por nombre, lote o vehiculo..." />
+      <input
+        name="q"
+        id="bf-q"
+        value={q}
+        class="h-12 w-full rounded-xl bg-[#f3f3f4] pl-11 pr-4 text-base outline-none"
+        placeholder="Buscar por nombre, lote o resultado..."
+      />
     </div>
-    <button type="submit" class="flex h-12 w-full items-center gap-2 rounded-xl bg-[#f3f3f4] px-4 text-base font-semibold text-[#213138]">
-      <span class="material-symbols-outlined text-lg">filter_list</span>
-      Filtros
-    </button>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <label class="block text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">
+        Desde
+        <input name="desde" id="bf-desde" type="datetime-local" value={desde} class="mt-1 h-12 w-full rounded-xl bg-[#f3f3f4] px-3 text-sm outline-none" />
+      </label>
+      <label class="block text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">
+        Hasta
+        <input name="hasta" id="bf-hasta" type="datetime-local" value={hasta} class="mt-1 h-12 w-full rounded-xl bg-[#f3f3f4] px-3 text-sm outline-none" />
+      </label>
+    </div>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <label class="block text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">
+        Resultado
+        <select name="resultado" id="bf-resultado" class="mt-1 h-12 w-full rounded-xl bg-[#f3f3f4] px-3 text-sm font-semibold outline-none">
+          <option value="" selected={resultado === ""}>Todos</option>
+          <option value="autorizado" selected={resultado === "autorizado"}>Autorizado</option>
+          <option value="rechazado" selected={resultado === "rechazado"}>Rechazado</option>
+        </select>
+      </label>
+      {
+        platformAdmin && !reader && (
+          <label class="block text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">
+            Complejo
+            <select name="complejo_id" id="bf-complejo" class="mt-1 h-12 w-full rounded-xl bg-[#f3f3f4] px-3 text-sm font-semibold outline-none">
+              <option value="" selected={complejoFilter === ""}>
+                Todos
+              </option>
+              {complejos.map((c) => (
+                <option value={c.id} selected={complejoFilter === c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+        )
+      }
+    </div>
+    <div class="flex flex-col gap-2 sm:flex-row">
+      <button type="submit" class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#213138] px-4 text-base font-semibold text-[#FCFBF9]">
+        <span class="material-symbols-outlined text-lg">filter_list</span>
+        Aplicar filtros
+      </button>
+      <button type="button" id="bf-save" class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-[#213138]/15 bg-[#f3f3f4] px-4 text-base font-semibold text-[#213138]">
+        Guardar vista
+      </button>
+      <button type="button" id="bf-restore" class="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-[#213138]/15 bg-white px-4 text-base font-semibold text-[#213138]">
+        Restaurar vista
+      </button>
+    </div>
   </form>
+
+  <div class="mt-4">
+    <a
+      href={exportHref}
+      class="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#3d5c4a]/25 bg-[rgba(61,92,74,0.08)] text-base font-semibold text-[#2d4a3a]"
+    >
+      <span class="material-symbols-outlined text-lg">download</span>
+      Exportar CSV (filtros actuales)
+    </a>
+  </div>
 
   <div class="my-5 flex items-center gap-3">
     <p class="text-xs font-bold uppercase tracking-[0.08em] text-[#7a7e82]">Registros</p>
@@ -34,29 +132,98 @@ const registros = await getBitacoraScope({ allComplejos: true, query: q });
   </div>
 
   <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-    {registros.length === 0 && (
-      <p class="col-span-full rounded-xl border border-dashed border-[#cfd4d9] bg-white/80 p-6 text-sm text-[#5f6368]">
-        Sin registros. Si el guardia ya operó en caseta, revisa que su perfil use el mismo <strong>complejo</strong> que los pases.
-      </p>
-    )}
-    {registros.map((row) => (
-      <a href={`/admin/detalle-movimiento?id=${row.id}`} class={`flex items-center gap-3 rounded-xl p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)] ${row.resultado === "rechazado" ? "bg-[#ffdad6]/35" : "bg-white"}`}>
-        <div class={`grid h-11 w-11 place-items-center rounded-full ${row.resultado === "rechazado" ? "bg-[#ffdad6] text-[#ba1a1a]" : "bg-[#83fba5]/25 text-[#006d36]"}`}>
-          <span class="material-symbols-outlined">{row.resultado === "rechazado" ? "warning" : "login"}</span>
+    {
+      registros.length === 0 && (
+        <p class="col-span-full rounded-xl border border-dashed border-[#cfd4d9] bg-white/80 p-6 text-sm text-[#5f6368]">
+          Sin registros. Si el guardia ya operó en caseta, revisa que su perfil use el mismo <strong>complejo</strong> que los pases.
+        </p>
+      )
+    }
+    {
+      registros.map((row) => (
+        <div class="flex flex-col gap-2">
+          <a
+            href={`/admin/detalle-movimiento?id=${row.id}`}
+            class={`flex flex-1 items-center gap-3 rounded-xl p-4 shadow-[0_6px_18px_rgba(26,28,28,0.04)] ${row.resultado === "rechazado" ? "bg-[#ffdad6]/35" : "bg-white"}`}
+          >
+            <div
+              class:list={[
+                "grid h-11 w-11 place-items-center rounded-full",
+                row.resultado === "rechazado" ? "bg-[#ffdad6] text-[#ba1a1a]" : "bg-[#83fba5]/25 text-[#006d36]"
+              ]}
+            >
+              <span class="material-symbols-outlined">{row.resultado === "rechazado" ? "warning" : "login"}</span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class={`text-lg font-semibold ${row.resultado === "rechazado" ? "text-[#93000a]" : "text-[#213138]"}`}>
+                {new Date(row.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })} {row.visitante_nombre ?? "Sin nombre"}
+              </p>
+              <p class={`text-sm ${row.resultado === "rechazado" ? "text-[#93000a]" : "text-[#5f6368]"}`}>
+                {(row.tipo_evento ?? "movimiento").toUpperCase()} · {row.complejo_id} · {row.lote_number ?? "Sin lote"} {row.razon ? `· ${row.razon}` : ""}
+              </p>
+              <p class="text-xs text-[#5f6368]">
+                Solicitante: {row.solicitante_nombre ?? "No identificado"} · Motivo: {row.motivo ?? "N/A"}
+              </p>
+              {row.notas && <p class="text-xs text-[#5f6368]">Notas: {row.notas}</p>}
+            </div>
+          </a>
+          {row.pase_id && (
+            <a
+              href={`/admin/pase/${row.pase_id}`}
+              class="text-center text-xs font-semibold text-[#3d5c4a] underline underline-offset-2"
+            >
+              Ver historial del pase
+            </a>
+          )}
         </div>
-        <div>
-          <p class={`text-lg font-semibold ${row.resultado === "rechazado" ? "text-[#93000a]" : "text-[#213138]"}`}>
-            {new Date(row.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })} {row.visitante_nombre ?? "Sin nombre"}
-          </p>
-          <p class={`text-sm ${row.resultado === "rechazado" ? "text-[#93000a]" : "text-[#5f6368]"}`}>
-            {(row.tipo_evento ?? "movimiento").toUpperCase()} · {row.complejo_id} · {row.lote_number ?? "Sin lote"} {row.razon ? `· ${row.razon}` : ""}
-          </p>
-          <p class="text-xs text-[#5f6368]">
-            Solicitante: {row.solicitante_nombre ?? "No identificado"} · Motivo: {row.motivo ?? "N/A"}
-          </p>
-          {row.notas && <p class="text-xs text-[#5f6368]">Notas: {row.notas}</p>}
-        </div>
-      </a>
-    ))}
+      ))
+    }
   </div>
 </AppLayout>
+
+<script is:inline>
+  const LS_KEY = "nauka-bitacora-filters";
+  const form = document.getElementById("bitacora-filter-form");
+  const saveBtn = document.getElementById("bf-save");
+  const restoreBtn = document.getElementById("bf-restore");
+
+  saveBtn?.addEventListener("click", () => {
+    const fd = new FormData(form instanceof HTMLFormElement ? form : undefined);
+    const payload = {
+      q: String(fd.get("q") ?? ""),
+      desde: String(fd.get("desde") ?? ""),
+      hasta: String(fd.get("hasta") ?? ""),
+      resultado: String(fd.get("resultado") ?? ""),
+      complejo_id: String(fd.get("complejo_id") ?? "")
+    };
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+    alert("Vista guardada en este dispositivo.");
+  });
+
+  restoreBtn?.addEventListener("click", () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) {
+        alert("No hay vista guardada.");
+        return;
+      }
+      const o = JSON.parse(raw);
+      const q = document.getElementById("bf-q");
+      const desde = document.getElementById("bf-desde");
+      const hasta = document.getElementById("bf-hasta");
+      const resultado = document.getElementById("bf-resultado");
+      const complejo = document.getElementById("bf-complejo");
+      if (q instanceof HTMLInputElement) q.value = typeof o.q === "string" ? o.q : "";
+      if (desde instanceof HTMLInputElement) desde.value = typeof o.desde === "string" ? o.desde : "";
+      if (hasta instanceof HTMLInputElement) hasta.value = typeof o.hasta === "string" ? o.hasta : "";
+      if (resultado instanceof HTMLSelectElement) resultado.value = typeof o.resultado === "string" ? o.resultado : "";
+      if (complejo instanceof HTMLSelectElement) complejo.value = typeof o.complejo_id === "string" ? o.complejo_id : "";
+    } catch {
+      alert("No se pudo leer la vista guardada.");
+    }
+  });
+</script>

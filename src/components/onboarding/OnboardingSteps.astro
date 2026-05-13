@@ -1,0 +1,31 @@
+---
+interface Step {
+  label: string;
+  done?: boolean;
+  current?: boolean;
+}
+
+interface Props {
+  steps: Step[];
+}
+
+const { steps } = Astro.props;
+---
+
+<ol class="mb-6 flex flex-wrap gap-2 border-b border-[#213138]/10 pb-4" aria-label="Progreso de alta">
+  {
+    steps.map((s, i) => (
+      <li class="flex min-w-0 flex-1 basis-[45%] items-center gap-2 sm:basis-0 sm:flex-initial">
+        <span
+          class:list={[
+            "grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold",
+            s.done ? "bg-[#3d5c4a] text-white" : s.current ? "bg-[#213138] text-[#FCFBF9]" : "bg-[#213138]/10 text-[#5c6569]"
+          ]}
+        >
+          {s.done ? "✓" : i + 1}
+        </span>
+        <span class:list={["text-xs font-semibold leading-tight sm:text-sm", s.current ? "text-[#213138]" : "text-[#5c6569]"]}>{s.label}</span>
+      </li>
+    ))
+  }
+</ol>

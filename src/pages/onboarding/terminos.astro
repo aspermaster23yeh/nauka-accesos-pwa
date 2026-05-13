@@ -1,41 +1,98 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import OnboardingSteps from "../../components/onboarding/OnboardingSteps.astro";
 import { getRoleHome } from "../../lib/role-home";
+import { passMessages, supportMailto } from "../../lib/ux-messages";
 
-const termsFallbackHome = getRoleHome(Astro.locals.profile?.role);
+const profile = Astro.locals.profile;
+const termsFallbackHome = getRoleHome(profile?.role);
+const role = profile?.role ?? "solicitante";
+const isGuardia = role === "guardia";
+const contactHref = supportMailto("Términos — Nauka Accesos");
+const hasMail = contactHref !== "#";
 ---
 
 <MainLayout title="Términos y condiciones - Nauka">
-  <div class="nauka-card-aero mx-auto max-w-lg p-6">
-    <h2 class="font-display text-xl text-[#213138]">Responsabilidad en el acceso</h2>
+  <div class="nauka-card-aero mx-auto max-w-lg border border-[#213138]/[0.06] p-6 sm:p-8">
+    <OnboardingSteps
+      steps={[
+        { label: "Cuenta", done: true },
+        { label: "Términos", current: true },
+        { label: "Listo", done: false }
+      ]}
+    />
+
+    <h2 class="font-display text-xl text-[#213138] sm:text-2xl">Responsabilidad en el acceso</h2>
+    <p class="mt-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#5c6569]">
+      {isGuardia ? "Perfil guardia" : "Perfil solicitante"}
+    </p>
+
     <p class="mt-4 text-sm leading-relaxed text-[#5c6569]">
-      Al usar Nauka Accesos confirmas que eres responsable de los pases que generas o validas, que no autorizarás el ingreso de personas ajenas al proyecto, y que la información que registras (incluida identificación oficial cargada) es veraz.
+      Al usar Nauka Accesos confirmas que la información que registras (incluida identificación oficial cuando aplique) es
+      veraz, y que cumplirás el reglamento del complejo sobre accesos y visitas.
     </p>
+    {
+      isGuardia ? (
+        <p class="mt-3 text-sm leading-relaxed text-[#5c6569]">
+          Como <strong>guardia</strong>, validarás códigos y registrarás movimientos en caseta de forma imparcial; los
+          registros quedan en bitácora para auditoría.
+        </p>
+      ) : (
+        <p class="mt-3 text-sm leading-relaxed text-[#5c6569]">
+          Como <strong>solicitante</strong>, eres responsable de los pases que generas y de que cada visitante cumpla lo
+          acordado con administración.
+        </p>
+      )
+    }
     <p class="mt-3 text-sm leading-relaxed text-[#5c6569]">
-      El incumplimiento puede conllevar la suspensión de tu cuenta y las acciones que correspondan según el reglamento del complejo.
+      El incumplimiento puede conllevar la suspensión de tu cuenta y las acciones que correspondan según el reglamento del
+      complejo.
     </p>
+
     <form id="accept-form" class="mt-8 space-y-5" data-fallback-home={termsFallbackHome}>
       <label class="flex items-start gap-3 text-sm text-[#213138]">
         <input type="checkbox" id="accept-check" class="mt-1 h-4 w-4 rounded border-[#213138]/25 text-[#213138] focus:ring-[#213138]/20" required />
         <span>He leído y acepto los términos y la responsabilidad descrita.</span>
       </label>
+
+      <div id="terms-error" class="hidden rounded-xl border border-[#9a6b5c]/30 bg-[rgba(154,107,92,0.1)] px-4 py-3 text-sm font-medium text-[#6b4f45]" role="alert"></div>
+
       <button type="submit" class="nauka-btn-primary h-12 w-full rounded-2xl text-sm font-semibold">Continuar</button>
     </form>
+
+    {
+      hasMail ? (
+        <p class="mt-4 text-center text-xs text-[#5c6569]">
+          ¿Dudas? <a href={contactHref} class="font-semibold text-[#3d5c4a] underline underline-offset-2">Contacto</a>
+        </p>
+      ) : null
+    }
   </div>
 </MainLayout>
 
-<script is:inline>
+<script is:inline define:vars={{ termsRequired: passMessages.termsRequired, termsSaveError: passMessages.termsSaveError }}>
   const form = document.getElementById("accept-form");
+  const errBox = document.getElementById("terms-error");
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (errBox) {
+      errBox.classList.add("hidden");
+      errBox.textContent = "";
+    }
     const check = document.getElementById("accept-check");
     if (!(check instanceof HTMLInputElement) || !check.checked) {
-      alert("Debes aceptar los términos para continuar.");
+      if (errBox) {
+        errBox.textContent = termsRequired;
+        errBox.classList.remove("hidden");
+      }
       return;
     }
     const res = await fetch("/api/onboarding/accept-terms", { method: "POST" });
     if (!res.ok) {
-      alert("No se pudo guardar la aceptación. Intenta de nuevo.");
+      if (errBox) {
+        errBox.textContent = termsSaveError;
+        errBox.classList.remove("hidden");
+      }
       return;
     }
     const data = await res.json().catch(() => ({}));

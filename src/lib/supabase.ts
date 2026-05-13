@@ -1,7 +1,7 @@
 import { createClient, type User, type SupabaseClient } from "@supabase/supabase-js";
 
 type PublicSchema = "public";
-export type AppRole = "solicitante" | "guardia" | "admin" | "super_admin";
+export type AppRole = "solicitante" | "guardia" | "admin" | "super_admin" | "lector_junta";
 
 export interface UserProfile {
   id: string;
@@ -14,6 +14,8 @@ export interface UserProfile {
   onboarding_status: string;
   ine_storage_path: string | null;
   photo_storage_path: string | null;
+  approved_at?: string | null;
+  approved_by?: string | null;
 }
 
 function readEnv(...keys: string[]): string | undefined {
@@ -117,7 +119,7 @@ export async function getProfileForUser(userId: string, accessToken?: string): P
     const { data, error } = await client
       .from("profiles")
       .select(
-        "id, role, full_name, lot_number, complejo_id, terms_accepted_at, terms_version, onboarding_status, ine_storage_path, photo_storage_path"
+        "id, role, full_name, lot_number, complejo_id, terms_accepted_at, terms_version, onboarding_status, ine_storage_path, photo_storage_path, approved_at, approved_by"
       )
       .eq("id", userId)
       .maybeSingle();
