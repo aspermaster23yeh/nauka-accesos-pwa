@@ -2,7 +2,7 @@
 import AppLayout from "../../layouts/AppLayout.astro";
 import { adminNav, committeeReaderNav } from "../../lib/nav";
 import { getSupabaseServiceClient } from "../../lib/supabase";
-import { isCommitteeReader } from "../../lib/admin-access";
+import { isCommitteeReader, isPlatformAdmin } from "../../lib/admin-access";
 
 const id = Astro.url.searchParams.get("id");
 const supabase = getSupabaseServiceClient();
@@ -69,6 +69,17 @@ const solicitanteLabel = solicitanteProfile?.full_name ?? "Sistema Nauka";
 const solicitanteLote = solicitanteProfile?.lot_number ?? row?.lote_number ?? "—";
 const visitanteNombrePase = (pass as { visitante_nombre?: string } | null)?.visitante_nombre ?? row?.visitante_nombre ?? "Visitante";
 const navItems = profile && isCommitteeReader(profile.role) ? committeeReaderNav : adminNav;
+const canReportIncidents = Boolean(profile && isPlatformAdmin(profile.role));
+
+let incidentesList: { id: string; created_at: string; estado: string; descripcion: string; severidad: string }[] = [];
+if (id && row) {
+  const { data: incData, error: incErr } = await supabase
+    .from("incidentes")
+    .select("id, created_at, estado, descripcion, severidad")
+    .eq("bitacora_id", id)
+    .order("created_at", { ascending: false });
+  if (!incErr && incData) incidentesList = incData;
+}
 ---
 
 <AppLayout
@@ -266,6 +277,85 @@ const navItems = profile && isCommitteeReader(profile.role) ? committeeReaderNav
         }
       </div>
     </article>
+
+    {
+      row && id && (
+        <article class="rounded-[20px] bg-white p-5 shadow-[0_8px_24px_rgba(26,28,28,0.05)] md:p-6">
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-2xl text-[#93000a]">crisis_alert</span>
+              <h2 class="text-xl font-semibold text-[#213138] md:text-2xl">Incidencias</h2>
+            </div>
+            {canReportIncidents && (
+              <a
+                href="/admin/incidentes"
+                class="text-sm font-semibold text-[#3d5c4a] underline underline-offset-2"
+              >
+                Ver todos
+              </a>
+            )}
+          </div>
+          <p class="mb-4 text-sm text-[#5f6368]">
+            Reportes operativos ligados a este registro de bitácora. Útiles para seguimiento con comité o seguridad.
+          </p>
+          {incidentesList.length === 0 && (
+            <p class="rounded-xl border border-dashed border-[#cfd4d9] bg-[#fafafa] p-5 text-center text-sm text-[#5f6368]">
+              Aún no hay incidencias reportadas para este movimiento.
+            </p>
+          )}
+          {incidentesList.length > 0 && (
+            <ul class="mb-6 space-y-3">
+              {incidentesList.map((inc) => (
+                <li class="rounded-xl border border-[#ececec] bg-[#fafafa] p-4">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#5f6368]">{inc.severidad}</span>
+                    <span class="text-xs text-[#5f6368]">{new Date(inc.created_at).toLocaleString("es-MX")}</span>
+                  </div>
+                  <p class="mt-2 text-base font-semibold text-[#213138]">{inc.descripcion}</p>
+                  <p class="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#3d5c4a]">Estado: {inc.estado}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          {canReportIncidents && (
+            <form id="reporte-incidencia" class="space-y-4 border-t border-[#eeeeee] pt-5">
+              <h3 class="text-lg font-semibold text-[#213138]">Nuevo reporte</h3>
+              <label class="block">
+                <span class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Descripción</span>
+                <textarea
+                  name="descripcion"
+                  required
+                  rows={4}
+                  class="mt-2 w-full rounded-xl border border-[#cfd4d9] bg-white px-4 py-3 text-base text-[#213138] outline-none ring-[#3d5c4a]/20 focus:ring-2"
+                  placeholder={`Describe la incidencia (movimiento ${row.tipo_evento ?? ""} · ${visitanteNombrePase} · lote ${row.lote_number ?? "—"})`}
+                />
+              </label>
+              <label class="block">
+                <span class="text-xs font-bold uppercase tracking-[0.08em] text-[#5f6368]">Severidad</span>
+                <select
+                  name="severidad"
+                  class="mt-2 w-full rounded-xl border border-[#cfd4d9] bg-white px-4 py-3 text-base font-semibold text-[#213138] outline-none ring-[#3d5c4a]/20 focus:ring-2"
+                >
+                  <option value="baja">Baja</option>
+                  <option value="media" selected>
+                    Media
+                  </option>
+                  <option value="alta">Alta</option>
+                </select>
+              </label>
+              <input type="hidden" name="bitacoraId" value={id} />
+              <p id="incidente-form-msg" class="hidden rounded-xl px-4 py-3 text-sm font-semibold" />
+              <button
+                type="submit"
+                class="nauka-btn-primary flex h-12 w-full items-center justify-center rounded-2xl text-base font-semibold disabled:opacity-50"
+              >
+                Enviar reporte
+              </button>
+            </form>
+          )}
+        </article>
+      )
+    }
   </section>
 
   <div class="mt-8 space-y-3">
@@ -282,8 +372,56 @@ const navItems = profile && isCommitteeReader(profile.role) ? committeeReaderNav
       Ir a la bitácora
     </a>
     <button type="button" class="h-12 w-full rounded-xl bg-[#e8e8e8] text-lg font-semibold text-[#213138]">Imprimir registro</button>
-    <button type="button" class="h-12 w-full rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-lg font-semibold text-white">
-      Reportar incidencia
-    </button>
+    {
+      canReportIncidents && row && id ? (
+        <a
+          href="#reporte-incidencia"
+          class="flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-b from-[#213138] to-[#37474f] text-lg font-semibold text-white"
+        >
+          Reportar incidencia
+        </a>
+      ) : null
+    }
   </div>
+
+  <script is:inline define:vars={{ canReportIncidents, bitacoraId: id ?? "" }}>
+    (function () {
+      if (!canReportIncidents || !bitacoraId) return;
+      const form = document.getElementById("reporte-incidencia");
+      const msg = document.getElementById("incidente-form-msg");
+      if (!form || !msg || !(form instanceof HTMLFormElement)) return;
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const descripcion = String(fd.get("descripcion") ?? "").trim();
+        const severidad = String(fd.get("severidad") ?? "media");
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = true;
+        msg.classList.add("hidden");
+        try {
+          const res = await fetch("/api/admin/incidentes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ descripcion, severidad, bitacoraId })
+          });
+          const data = await res.json().catch(function () {
+            return {};
+          });
+          if (!res.ok) {
+            msg.textContent = data.error || "No se pudo guardar el reporte.";
+            msg.className = "rounded-xl bg-[#fdecea] px-4 py-3 text-sm font-semibold text-[#93000a]";
+            msg.classList.remove("hidden");
+            return;
+          }
+          window.location.reload();
+        } catch {
+          msg.textContent = "Error de red. Intenta de nuevo.";
+          msg.className = "rounded-xl bg-[#fdecea] px-4 py-3 text-sm font-semibold text-[#93000a]";
+          msg.classList.remove("hidden");
+        } finally {
+          if (submitBtn instanceof HTMLButtonElement) submitBtn.disabled = false;
+        }
+      });
+    })();
+  </script>
 </AppLayout>
